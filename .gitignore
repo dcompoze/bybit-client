@@ -1,0 +1,7 @@
+third-party/
+.env
+target/
+.archive/
+.claude
+CLAUDE.md
+AGENTS.md
