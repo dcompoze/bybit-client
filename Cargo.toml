@@ -1,7 +1,17 @@
 [package]
 name = "bybit-client"
-version = "0.0.0"
+version = "0.1.0"
 edition = "2021"
+authors = ["dcompoze"]
+description = "A Rust client library for the Bybit V5 API with REST and WebSocket support"
+license = "MIT"
+repository = "https://github.com/dcompoze/bybit-client"
+homepage = "https://github.com/dcompoze/bybit-client"
+documentation = "https://docs.rs/bybit-client"
+readme = "README.md"
+keywords = ["bybit", "cryptocurrency", "trading", "api", "websocket"]
+categories = ["api-bindings", "asynchronous", "web-programming"]
+rust-version = "1.70"
 
 [lib]
 path = "src/lib.rs"
