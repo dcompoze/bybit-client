@@ -542,7 +542,10 @@ mod tests {
     #[test]
     fn test_orderbook_entry_deserialize() {
         let json = r#"["35000.5", "10.5"]"#;
-        let entry: OrderbookEntry = serde_json::from_str(json).unwrap();
+        let entry: OrderbookEntry = match serde_json::from_str(json) {
+            Ok(entry) => entry,
+            Err(err) => panic!("Failed to parse orderbook entry: {}", err),
+        };
         assert_eq!(entry.price, "35000.5");
         assert_eq!(entry.size, "10.5");
     }
@@ -555,7 +558,10 @@ mod tests {
             "price24hPcnt": "0.05",
             "volume24h": "10000"
         }"#;
-        let ticker: Ticker = serde_json::from_str(json).unwrap();
+        let ticker: Ticker = match serde_json::from_str(json) {
+            Ok(ticker) => ticker,
+            Err(err) => panic!("Failed to parse ticker: {}", err),
+        };
         assert_eq!(ticker.symbol, "BTCUSDT");
         assert_eq!(ticker.last_price, Some("35000.5".to_string()));
     }

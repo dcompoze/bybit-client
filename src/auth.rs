@@ -41,7 +41,7 @@ pub fn sign_ws_auth(expires: u64, api_secret: &str) -> String {
 pub fn current_timestamp_ms() -> u64 {
     std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
-        .expect("Time went backwards")
+        .unwrap_or_else(|err| err.duration())
         .as_millis() as u64
 }
 

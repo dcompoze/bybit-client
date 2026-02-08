@@ -300,7 +300,10 @@ mod tests {
     #[test]
     fn test_build_url() {
         let config = ClientConfig::default();
-        let client = HttpClient::new(config).unwrap();
+        let client = match HttpClient::new(config) {
+            Ok(client) => client,
+            Err(err) => panic!("Failed to build HTTP client: {}", err),
+        };
         let url = client.build_url("/v5/market/time");
         assert_eq!(url, "https://api.bybit.com/v5/market/time");
     }
@@ -308,7 +311,10 @@ mod tests {
     #[test]
     fn test_testnet_url() {
         let config = ClientConfig::default().testnet();
-        let client = HttpClient::new(config).unwrap();
+        let client = match HttpClient::new(config) {
+            Ok(client) => client,
+            Err(err) => panic!("Failed to build HTTP client: {}", err),
+        };
         let url = client.build_url("/v5/market/time");
         assert_eq!(url, "https://api-testnet.bybit.com/v5/market/time");
     }
@@ -316,7 +322,10 @@ mod tests {
     #[test]
     fn test_time_offset() {
         let config = ClientConfig::default();
-        let client = HttpClient::new(config).unwrap();
+        let client = match HttpClient::new(config) {
+            Ok(client) => client,
+            Err(err) => panic!("Failed to build HTTP client: {}", err),
+        };
 
         assert_eq!(client.time_offset(), 0);
         client.set_time_offset(1000);

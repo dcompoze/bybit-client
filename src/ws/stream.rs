@@ -289,8 +289,12 @@ mod tests {
         let (tx, rx) = mpsc::unbounded_channel();
         let mut stream = WsStream::new(rx);
 
-        tx.send(make_trade_message("BTCUSDT")).unwrap();
-        tx.send(make_orderbook_message("BTCUSDT")).unwrap();
+        if let Err(err) = tx.send(make_trade_message("BTCUSDT")) {
+            panic!("Failed to send trade message: {}", err);
+        }
+        if let Err(err) = tx.send(make_orderbook_message("BTCUSDT")) {
+            panic!("Failed to send orderbook message: {}", err);
+        }
         drop(tx);
 
         let mut count = 0;
@@ -305,9 +309,15 @@ mod tests {
         let (tx, rx) = mpsc::unbounded_channel();
         let stream = WsStream::new(rx);
 
-        tx.send(make_trade_message("BTCUSDT")).unwrap();
-        tx.send(make_orderbook_message("BTCUSDT")).unwrap();
-        tx.send(make_trade_message("ETHUSDT")).unwrap();
+        if let Err(err) = tx.send(make_trade_message("BTCUSDT")) {
+            panic!("Failed to send trade message: {}", err);
+        }
+        if let Err(err) = tx.send(make_orderbook_message("BTCUSDT")) {
+            panic!("Failed to send orderbook message: {}", err);
+        }
+        if let Err(err) = tx.send(make_trade_message("ETHUSDT")) {
+            panic!("Failed to send trade message: {}", err);
+        }
         drop(tx);
 
         let trades: Vec<_> = stream.trades().collect().await;
@@ -321,9 +331,15 @@ mod tests {
         let (tx, rx) = mpsc::unbounded_channel();
         let stream = WsStream::new(rx);
 
-        tx.send(make_trade_message("BTCUSDT")).unwrap();
-        tx.send(make_orderbook_message("BTCUSDT")).unwrap();
-        tx.send(make_orderbook_message("ETHUSDT")).unwrap();
+        if let Err(err) = tx.send(make_trade_message("BTCUSDT")) {
+            panic!("Failed to send trade message: {}", err);
+        }
+        if let Err(err) = tx.send(make_orderbook_message("BTCUSDT")) {
+            panic!("Failed to send orderbook message: {}", err);
+        }
+        if let Err(err) = tx.send(make_orderbook_message("ETHUSDT")) {
+            panic!("Failed to send orderbook message: {}", err);
+        }
         drop(tx);
 
         let orderbooks: Vec<_> = stream.orderbooks().collect().await;
@@ -335,10 +351,18 @@ mod tests {
         let (tx, rx) = mpsc::unbounded_channel();
         let stream = WsStream::new(rx);
 
-        tx.send(make_trade_message("BTCUSDT")).unwrap();
-        tx.send(make_orderbook_message("BTCUSDT")).unwrap();
-        tx.send(make_trade_message("ETHUSDT")).unwrap();
-        tx.send(make_orderbook_message("ETHUSDT")).unwrap();
+        if let Err(err) = tx.send(make_trade_message("BTCUSDT")) {
+            panic!("Failed to send trade message: {}", err);
+        }
+        if let Err(err) = tx.send(make_orderbook_message("BTCUSDT")) {
+            panic!("Failed to send orderbook message: {}", err);
+        }
+        if let Err(err) = tx.send(make_trade_message("ETHUSDT")) {
+            panic!("Failed to send trade message: {}", err);
+        }
+        if let Err(err) = tx.send(make_orderbook_message("ETHUSDT")) {
+            panic!("Failed to send orderbook message: {}", err);
+        }
         drop(tx);
 
         let btc_messages: Vec<_> = stream.for_symbol("BTCUSDT").collect().await;
@@ -350,7 +374,9 @@ mod tests {
         let (tx, rx) = mpsc::unbounded_channel();
         let mut stream = rx.into_stream();
 
-        tx.send(make_trade_message("BTCUSDT")).unwrap();
+        if let Err(err) = tx.send(make_trade_message("BTCUSDT")) {
+            panic!("Failed to send trade message: {}", err);
+        }
         drop(tx);
 
         let msg = stream.next().await;

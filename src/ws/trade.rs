@@ -630,7 +630,10 @@ mod tests {
             market_unit: None,
         };
 
-        let json = serde_json::to_string(&request).unwrap();
+        let json = match serde_json::to_string(&request) {
+            Ok(json) => json,
+            Err(err) => panic!("Failed to serialize create request: {}", err),
+        };
         assert!(json.contains("\"category\":\"linear\""));
         assert!(json.contains("\"symbol\":\"BTCUSDT\""));
         assert!(json.contains("\"side\":\"Buy\""));
@@ -654,7 +657,10 @@ mod tests {
             sl_limit_price: None,
         };
 
-        let json = serde_json::to_string(&request).unwrap();
+        let json = match serde_json::to_string(&request) {
+            Ok(json) => json,
+            Err(err) => panic!("Failed to serialize amend request: {}", err),
+        };
         assert!(json.contains("\"orderId\":\"order-123\""));
         assert!(json.contains("\"qty\":\"0.002\""));
         assert!(json.contains("\"price\":\"51000\""));
@@ -669,9 +675,12 @@ mod tests {
             order_link_id: None,
         };
 
-        let json = serde_json::to_string(&request).unwrap();
+        let json = match serde_json::to_string(&request) {
+            Ok(json) => json,
+            Err(err) => panic!("Failed to serialize cancel request: {}", err),
+        };
         assert!(json.contains("\"orderId\":\"order-123\""));
-        assert!(!json.contains("orderLinkId")); // Should be skipped
+        assert!(!json.contains("orderLinkId"));
     }
 
     #[test]
@@ -688,12 +697,18 @@ mod tests {
             "connId": "conn-123"
         }"#;
 
-        let response: WsTradeResponse = serde_json::from_str(json).unwrap();
+        let response: WsTradeResponse = match serde_json::from_str(json) {
+            Ok(response) => response,
+            Err(err) => panic!("Failed to parse trade response: {}", err),
+        };
         assert_eq!(response.req_id, "req-1");
         assert!(response.is_success());
         assert_eq!(response.op, "order.create");
 
-        let result: OrderResult = response.into_result().unwrap();
+        let result: OrderResult = match response.into_result() {
+            Ok(result) => result,
+            Err(err) => panic!("Expected successful result: {}", err),
+        };
         assert_eq!(result.order_id, "order-456");
         assert_eq!(result.order_link_id, Some("my-order-1".to_string()));
     }
@@ -708,7 +723,10 @@ mod tests {
             "data": {}
         }"#;
 
-        let response: WsTradeResponse = serde_json::from_str(json).unwrap();
+        let response: WsTradeResponse = match serde_json::from_str(json) {
+            Ok(response) => response,
+            Err(err) => panic!("Failed to parse trade response: {}", err),
+        };
         assert!(!response.is_success());
 
         let result: Result<OrderResult, _> = response.into_result();

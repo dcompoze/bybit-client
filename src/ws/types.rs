@@ -837,7 +837,10 @@ mod tests {
     #[test]
     fn test_ws_operation_serialize() {
         let op = WsOperation::subscribe(vec!["orderbook.50.BTCUSDT".to_string()]);
-        let json = serde_json::to_string(&op).unwrap();
+        let json = match serde_json::to_string(&op) {
+            Ok(json) => json,
+            Err(err) => panic!("Failed to serialize operation: {}", err),
+        };
         assert!(json.contains("\"op\":\"subscribe\""));
         assert!(json.contains("orderbook.50.BTCUSDT"));
     }
@@ -845,7 +848,10 @@ mod tests {
     #[test]
     fn test_ws_operation_ping() {
         let op = WsOperation::ping();
-        let json = serde_json::to_string(&op).unwrap();
+        let json = match serde_json::to_string(&op) {
+            Ok(json) => json,
+            Err(err) => panic!("Failed to serialize ping: {}", err),
+        };
         assert_eq!(json, r#"{"op":"ping"}"#);
     }
 
@@ -863,7 +869,10 @@ mod tests {
             "a": [["50001", "0.8"]],
             "u": 12345
         }"#;
-        let data: OrderbookData = serde_json::from_str(json).unwrap();
+        let data: OrderbookData = match serde_json::from_str(json) {
+            Ok(data) => data,
+            Err(err) => panic!("Failed to parse orderbook data: {}", err),
+        };
         assert_eq!(data.symbol, "BTCUSDT");
         assert_eq!(data.bids.len(), 2);
         assert_eq!(data.bids[0].price, "50000");
@@ -889,7 +898,10 @@ mod tests {
             "createdTime": "1658384314791",
             "updatedTime": "1658384314792"
         }"#;
-        let data: PositionData = serde_json::from_str(json).unwrap();
+        let data: PositionData = match serde_json::from_str(json) {
+            Ok(data) => data,
+            Err(err) => panic!("Failed to parse position data: {}", err),
+        };
         assert_eq!(data.category, "linear");
         assert_eq!(data.symbol, "BTCUSDT");
         assert_eq!(data.side, "Buy");
@@ -913,7 +925,10 @@ mod tests {
             "createdTime": "1658384314791",
             "updatedTime": "1658384314792"
         }"#;
-        let data: OrderData = serde_json::from_str(json).unwrap();
+        let data: OrderData = match serde_json::from_str(json) {
+            Ok(data) => data,
+            Err(err) => panic!("Failed to parse order data: {}", err),
+        };
         assert_eq!(data.category, "linear");
         assert_eq!(data.order_id, "order-123");
         assert_eq!(data.symbol, "BTCUSDT");
@@ -937,7 +952,10 @@ mod tests {
             "isMaker": false,
             "feeRate": "0.0006"
         }"#;
-        let data: ExecutionData = serde_json::from_str(json).unwrap();
+        let data: ExecutionData = match serde_json::from_str(json) {
+            Ok(data) => data,
+            Err(err) => panic!("Failed to parse execution data: {}", err),
+        };
         assert_eq!(data.category, "linear");
         assert_eq!(data.symbol, "BTCUSDT");
         assert_eq!(data.exec_id, "exec-456");
@@ -967,7 +985,10 @@ mod tests {
                 }
             ]
         }"#;
-        let data: WalletData = serde_json::from_str(json).unwrap();
+        let data: WalletData = match serde_json::from_str(json) {
+            Ok(data) => data,
+            Err(err) => panic!("Failed to parse wallet data: {}", err),
+        };
         assert_eq!(data.account_type, "UNIFIED");
         assert_eq!(data.total_equity, Some("10000.0".to_string()));
         assert_eq!(data.coin.len(), 2);
@@ -984,7 +1005,10 @@ mod tests {
             "totalVega": "100.0",
             "totalTheta": "-50.0"
         }"#;
-        let data: GreeksData = serde_json::from_str(json).unwrap();
+        let data: GreeksData = match serde_json::from_str(json) {
+            Ok(data) => data,
+            Err(err) => panic!("Failed to parse greeks data: {}", err),
+        };
         assert_eq!(data.base_coin, "BTC");
         assert_eq!(data.total_delta, Some("0.5".to_string()));
         assert_eq!(data.total_gamma, Some("0.001".to_string()));
@@ -1002,7 +1026,10 @@ mod tests {
                 "size": "0.01"
             }]
         }"#;
-        let msg: WsPrivateMessage<Vec<PositionData>> = serde_json::from_str(json).unwrap();
+        let msg: WsPrivateMessage<Vec<PositionData>> = match serde_json::from_str(json) {
+            Ok(msg) => msg,
+            Err(err) => panic!("Failed to parse private message: {}", err),
+        };
         assert_eq!(msg.topic, "position");
         assert_eq!(msg.creation_time, 1658384314791);
         assert_eq!(msg.data.len(), 1);

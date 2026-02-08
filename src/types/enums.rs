@@ -374,14 +374,17 @@ mod tests {
 
     #[test]
     fn test_category_serialization() {
-        assert_eq!(
-            serde_json::to_string(&Category::Linear).unwrap(),
-            "\"linear\""
-        );
-        assert_eq!(
-            serde_json::from_str::<Category>("\"spot\"").unwrap(),
-            Category::Spot
-        );
+        let serialized = match serde_json::to_string(&Category::Linear) {
+            Ok(serialized) => serialized,
+            Err(err) => panic!("Failed to serialize category: {}", err),
+        };
+        assert_eq!(serialized, "\"linear\"");
+
+        let parsed = match serde_json::from_str::<Category>("\"spot\"") {
+            Ok(parsed) => parsed,
+            Err(err) => panic!("Failed to deserialize category: {}", err),
+        };
+        assert_eq!(parsed, Category::Spot);
     }
 
     #[test]

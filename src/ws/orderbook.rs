@@ -434,17 +434,25 @@ mod tests {
             vec![("50001", "0.8"), ("50002", "1.2")],
         );
 
-        ob.apply_update(&snapshot).unwrap();
+        if let Err(err) = ob.apply_update(&snapshot) {
+            panic!("Failed to apply snapshot: {}", err);
+        }
 
         assert!(ob.is_initialized());
         assert_eq!(ob.bid_levels(), 3);
         assert_eq!(ob.ask_levels(), 2);
 
-        let best_bid = ob.best_bid().unwrap();
+        let best_bid = match ob.best_bid() {
+            Some(level) => level,
+            None => panic!("Expected best bid"),
+        };
         assert_eq!(best_bid.price, "50000");
         assert_eq!(best_bid.size, "1.5");
 
-        let best_ask = ob.best_ask().unwrap();
+        let best_ask = match ob.best_ask() {
+            Some(level) => level,
+            None => panic!("Expected best ask"),
+        };
         assert_eq!(best_ask.price, "50001");
         assert_eq!(best_ask.size, "0.8");
     }
@@ -457,10 +465,14 @@ mod tests {
             vec![("50000", "1.5")],
             vec![("50001", "0.8")],
         );
-        ob.apply_update(&snapshot).unwrap();
+        if let Err(err) = ob.apply_update(&snapshot) {
+            panic!("Failed to apply snapshot: {}", err);
+        }
 
         let delta = make_delta("BTCUSDT", vec![("49999", "2.0")], vec![], 2);
-        ob.apply_update(&delta).unwrap();
+        if let Err(err) = ob.apply_update(&delta) {
+            panic!("Failed to apply delta: {}", err);
+        }
 
         assert_eq!(ob.bid_levels(), 2);
         let top_bids = ob.top_bids(2);
@@ -476,13 +488,20 @@ mod tests {
             vec![("50000", "1.5")],
             vec![("50001", "0.8")],
         );
-        ob.apply_update(&snapshot).unwrap();
+        if let Err(err) = ob.apply_update(&snapshot) {
+            panic!("Failed to apply snapshot: {}", err);
+        }
 
         let delta = make_delta("BTCUSDT", vec![("50000", "3.0")], vec![], 2);
-        ob.apply_update(&delta).unwrap();
+        if let Err(err) = ob.apply_update(&delta) {
+            panic!("Failed to apply delta: {}", err);
+        }
 
         assert_eq!(ob.bid_levels(), 1);
-        let best_bid = ob.best_bid().unwrap();
+        let best_bid = match ob.best_bid() {
+            Some(level) => level,
+            None => panic!("Expected best bid"),
+        };
         assert_eq!(best_bid.price, "50000");
         assert_eq!(best_bid.size, "3.0");
     }
@@ -495,13 +514,20 @@ mod tests {
             vec![("50000", "1.5"), ("49999", "2.0")],
             vec![("50001", "0.8")],
         );
-        ob.apply_update(&snapshot).unwrap();
+        if let Err(err) = ob.apply_update(&snapshot) {
+            panic!("Failed to apply snapshot: {}", err);
+        }
 
         let delta = make_delta("BTCUSDT", vec![("50000", "0")], vec![], 2);
-        ob.apply_update(&delta).unwrap();
+        if let Err(err) = ob.apply_update(&delta) {
+            panic!("Failed to apply delta: {}", err);
+        }
 
         assert_eq!(ob.bid_levels(), 1);
-        let best_bid = ob.best_bid().unwrap();
+        let best_bid = match ob.best_bid() {
+            Some(level) => level,
+            None => panic!("Expected best bid"),
+        };
         assert_eq!(best_bid.price, "49999");
     }
 
@@ -513,7 +539,9 @@ mod tests {
             vec![("50000", "1.0")],
             vec![("50010", "1.0")],
         );
-        ob.apply_update(&snapshot).unwrap();
+        if let Err(err) = ob.apply_update(&snapshot) {
+            panic!("Failed to apply snapshot: {}", err);
+        }
 
         assert_eq!(ob.spread(), Some(10.0));
         assert_eq!(ob.mid_price(), Some(50005.0));
@@ -527,7 +555,9 @@ mod tests {
             vec![("50000", "1.0"), ("49999", "2.0")],
             vec![("50001", "0.5"), ("50002", "1.5")],
         );
-        ob.apply_update(&snapshot).unwrap();
+        if let Err(err) = ob.apply_update(&snapshot) {
+            panic!("Failed to apply snapshot: {}", err);
+        }
 
         assert_eq!(ob.bid_depth(), 3.0);
         assert_eq!(ob.ask_depth(), 2.0);
@@ -541,7 +571,9 @@ mod tests {
             vec![("50000", "3.0")],
             vec![("50001", "1.0")],
         );
-        ob.apply_update(&snapshot).unwrap();
+        if let Err(err) = ob.apply_update(&snapshot) {
+            panic!("Failed to apply snapshot: {}", err);
+        }
 
         assert_eq!(ob.imbalance(), 0.5);
     }
@@ -572,7 +604,9 @@ mod tests {
             vec![("50000", "1.5")],
             vec![("50001", "0.8")],
         );
-        ob.apply_update(&snapshot).unwrap();
+        if let Err(err) = ob.apply_update(&snapshot) {
+            panic!("Failed to apply snapshot: {}", err);
+        }
 
         let reset = WsStreamMessage {
             topic: "orderbook.50.BTCUSDT".to_string(),
@@ -587,10 +621,16 @@ mod tests {
             },
             cts: None,
         };
-        ob.apply_update(&reset).unwrap();
+        if let Err(err) = ob.apply_update(&reset) {
+            panic!("Failed to apply reset update: {}", err);
+        }
 
         assert_eq!(ob.bid_levels(), 1);
-        assert_eq!(ob.best_bid().unwrap().price, "49000");
+        let best_bid = match ob.best_bid() {
+            Some(level) => level,
+            None => panic!("Expected best bid after reset"),
+        };
+        assert_eq!(best_bid.price, "49000");
     }
 
     #[test]
@@ -601,7 +641,9 @@ mod tests {
             vec![("50000", "1.5")],
             vec![("50001", "0.8")],
         );
-        ob.apply_update(&snapshot).unwrap();
+        if let Err(err) = ob.apply_update(&snapshot) {
+            panic!("Failed to apply snapshot: {}", err);
+        }
 
         ob.clear();
 

@@ -759,7 +759,10 @@ mod tests {
         let params =
             GetKlineParams::new(Category::Linear, "BTCUSDT", KlineInterval::Hour1).limit(100);
 
-        let serialized = serde_urlencoded::to_string(&params).unwrap();
+        let serialized = match serde_urlencoded::to_string(&params) {
+            Ok(serialized) => serialized,
+            Err(err) => panic!("Failed to serialize kline params: {}", err),
+        };
         assert!(serialized.contains("category=linear"));
         assert!(serialized.contains("symbol=BTCUSDT"));
         assert!(serialized.contains("interval=60"));

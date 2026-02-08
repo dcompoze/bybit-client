@@ -265,7 +265,10 @@ mod tests {
     fn test_get_wallet_balance_params_serialization() {
         let params = GetWalletBalanceParams::new(AccountType::Unified).coin("BTC");
 
-        let query = serde_urlencoded::to_string(&params).unwrap();
+        let query = match serde_urlencoded::to_string(&params) {
+            Ok(query) => query,
+            Err(err) => panic!("Failed to serialize wallet balance params: {}", err),
+        };
         assert!(query.contains("accountType=UNIFIED"));
         assert!(query.contains("coin=BTC"));
     }
@@ -274,7 +277,10 @@ mod tests {
     fn test_get_fee_rates_params_serialization() {
         let params = GetFeeRatesParams::new(Category::Linear).symbol("BTCUSDT");
 
-        let query = serde_urlencoded::to_string(&params).unwrap();
+        let query = match serde_urlencoded::to_string(&params) {
+            Ok(query) => query,
+            Err(err) => panic!("Failed to serialize fee rates params: {}", err),
+        };
         assert!(query.contains("category=linear"));
         assert!(query.contains("symbol=BTCUSDT"));
     }
@@ -282,7 +288,10 @@ mod tests {
     #[test]
     fn test_set_collateral_coin_params_serialization() {
         let params = SetCollateralCoinParams::enable("BTC");
-        let json = serde_json::to_string(&params).unwrap();
+        let json = match serde_json::to_string(&params) {
+            Ok(json) => json,
+            Err(err) => panic!("Failed to serialize collateral params: {}", err),
+        };
         assert!(json.contains("\"coin\":\"BTC\""));
         assert!(json.contains("\"collateralSwitch\":\"ON\""));
     }
@@ -290,7 +299,10 @@ mod tests {
     #[test]
     fn test_set_margin_mode_params_serialization() {
         let params = SetMarginModeParams::portfolio_margin();
-        let json = serde_json::to_string(&params).unwrap();
+        let json = match serde_json::to_string(&params) {
+            Ok(json) => json,
+            Err(err) => panic!("Failed to serialize margin mode params: {}", err),
+        };
         assert!(json.contains("\"setMarginMode\":\"PORTFOLIO_MARGIN\""));
     }
 }

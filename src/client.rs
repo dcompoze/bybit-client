@@ -264,12 +264,15 @@ mod tests {
 
     #[test]
     fn test_client_builder() {
-        let client = BybitClientBuilder::new()
+        let client = match BybitClientBuilder::new()
             .credentials("test_key", "test_secret")
             .testnet()
             .debug(true)
             .build()
-            .unwrap();
+        {
+            Ok(client) => client,
+            Err(err) => panic!("Failed to build client: {}", err),
+        };
 
         assert!(client.has_credentials());
         assert!(client.config().debug);
@@ -277,7 +280,10 @@ mod tests {
 
     #[test]
     fn test_public_only_client() {
-        let client = BybitClient::public_only().unwrap();
+        let client = match BybitClient::public_only() {
+            Ok(client) => client,
+            Err(err) => panic!("Failed to build public client: {}", err),
+        };
         assert!(!client.has_credentials());
     }
 }

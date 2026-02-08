@@ -379,7 +379,10 @@ mod tests {
             .time_in_force(crate::types::TimeInForce::GTC)
             .order_link_id("test_order");
 
-        let json = serde_json::to_string(&params).unwrap();
+        let json = match serde_json::to_string(&params) {
+            Ok(json) => json,
+            Err(err) => panic!("Failed to serialize order params: {}", err),
+        };
         assert!(json.contains("\"category\":\"linear\""));
         assert!(json.contains("\"symbol\":\"BTCUSDT\""));
         assert!(json.contains("\"side\":\"Buy\""));
@@ -396,7 +399,10 @@ mod tests {
             .price("3000")
             .qty("1.5");
 
-        let json = serde_json::to_string(&params).unwrap();
+        let json = match serde_json::to_string(&params) {
+            Ok(json) => json,
+            Err(err) => panic!("Failed to serialize amend params: {}", err),
+        };
         assert!(json.contains("\"category\":\"spot\""));
         assert!(json.contains("\"symbol\":\"ETHUSDT\""));
         assert!(json.contains("\"orderId\":\"order456\""));
@@ -410,7 +416,10 @@ mod tests {
         let params =
             CancelOrderParams::by_order_link_id(Category::Linear, "BTCUSDT", "my_order_789");
 
-        let json = serde_json::to_string(&params).unwrap();
+        let json = match serde_json::to_string(&params) {
+            Ok(json) => json,
+            Err(err) => panic!("Failed to serialize cancel params: {}", err),
+        };
         assert!(json.contains("\"category\":\"linear\""));
         assert!(json.contains("\"symbol\":\"BTCUSDT\""));
         assert!(json.contains("\"orderLinkId\":\"my_order_789\""));
@@ -423,7 +432,10 @@ mod tests {
             .symbol("BTCUSDT")
             .limit(25);
 
-        let json = serde_urlencoded::to_string(&params).unwrap();
+        let json = match serde_urlencoded::to_string(&params) {
+            Ok(json) => json,
+            Err(err) => panic!("Failed to serialize open orders params: {}", err),
+        };
         assert!(json.contains("category=spot"));
         assert!(json.contains("symbol=BTCUSDT"));
         assert!(json.contains("limit=25"));
@@ -448,7 +460,10 @@ mod tests {
             request: orders,
         };
 
-        let json = serde_json::to_string(&request).unwrap();
+        let json = match serde_json::to_string(&request) {
+            Ok(json) => json,
+            Err(err) => panic!("Failed to serialize batch request: {}", err),
+        };
         assert!(json.contains("\"category\":\"linear\""));
         assert!(json.contains("\"request\":["));
         assert!(json.contains("BTCUSDT"));

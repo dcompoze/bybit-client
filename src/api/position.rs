@@ -241,7 +241,10 @@ mod tests {
     #[test]
     fn test_set_leverage_params_serialization() {
         let params = SetLeverageParams::uniform(Category::Linear, "BTCUSDT", "10");
-        let json = serde_json::to_string(&params).unwrap();
+        let json = match serde_json::to_string(&params) {
+            Ok(json) => json,
+            Err(err) => panic!("Failed to serialize leverage params: {}", err),
+        };
         assert!(json.contains("\"category\":\"linear\""));
         assert!(json.contains("\"symbol\":\"BTCUSDT\""));
         assert!(json.contains("\"buyLeverage\":\"10\""));
@@ -254,7 +257,10 @@ mod tests {
             .take_profit("55000")
             .stop_loss("45000");
 
-        let json = serde_json::to_string(&params).unwrap();
+        let json = match serde_json::to_string(&params) {
+            Ok(json) => json,
+            Err(err) => panic!("Failed to serialize trading stop params: {}", err),
+        };
         assert!(json.contains("\"takeProfit\":\"55000\""));
         assert!(json.contains("\"stopLoss\":\"45000\""));
     }
@@ -265,7 +271,10 @@ mod tests {
             .symbol("BTCUSDT")
             .limit(20);
 
-        let query = serde_urlencoded::to_string(&params).unwrap();
+        let query = match serde_urlencoded::to_string(&params) {
+            Ok(query) => query,
+            Err(err) => panic!("Failed to serialize closed PnL params: {}", err),
+        };
         assert!(query.contains("category=linear"));
         assert!(query.contains("symbol=BTCUSDT"));
         assert!(query.contains("limit=20"));

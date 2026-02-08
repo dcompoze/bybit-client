@@ -212,7 +212,10 @@ mod tests {
             "time": 1234567890
         }"#;
 
-        let response: ApiResponse<serde_json::Value> = serde_json::from_str(json).unwrap();
+        let response: ApiResponse<serde_json::Value> = match serde_json::from_str(json) {
+            Ok(value) => value,
+            Err(err) => panic!("Failed to parse response JSON: {}", err),
+        };
         assert!(response.is_success());
         assert_eq!(response.result["value"], 123);
     }
@@ -226,10 +229,16 @@ mod tests {
             "time": 1234567890
         }"#;
 
-        let response: ApiResponse<serde_json::Value> = serde_json::from_str(json).unwrap();
+        let response: ApiResponse<serde_json::Value> = match serde_json::from_str(json) {
+            Ok(value) => value,
+            Err(err) => panic!("Failed to parse response JSON: {}", err),
+        };
         assert!(!response.is_success());
 
-        let err = response.into_result().unwrap_err();
+        let err = match response.into_result() {
+            Ok(_) => panic!("Expected error response"),
+            Err(err) => err,
+        };
         assert_eq!(err.api_code(), Some(10001));
     }
 
