@@ -65,19 +65,16 @@ mod tests {
 
     #[test]
     fn test_hmac_signature() {
-        // Test vector based on Bybit documentation
         let secret = "test_secret";
         let message = "test_message";
         let sig = sign_hmac_sha256(message, secret);
 
-        // Verify it's a valid hex string of correct length (64 chars for SHA256)
         assert_eq!(sig.len(), 64);
         assert!(sig.chars().all(|c| c.is_ascii_hexdigit()));
     }
 
     #[test]
     fn test_rest_signature() {
-        // Based on Bybit's example from their documentation
         let timestamp: u64 = 1658384314791;
         let api_key = "XXXXXXXX";
         let recv_window = 5000;
@@ -86,7 +83,6 @@ mod tests {
 
         let signature = sign_rest_request(timestamp, api_key, recv_window, payload, api_secret);
 
-        // Should produce a 64-char hex string
         assert_eq!(signature.len(), 64);
         assert!(signature.chars().all(|c| c.is_ascii_hexdigit()));
     }
@@ -98,19 +94,16 @@ mod tests {
 
         let signature = sign_ws_auth(expires, api_secret);
 
-        // Should produce a 64-char hex string
         assert_eq!(signature.len(), 64);
         assert!(signature.chars().all(|c| c.is_ascii_hexdigit()));
     }
 
     #[test]
     fn test_signature_consistency() {
-        // Same inputs should produce same output
         let sig1 = sign_hmac_sha256("test", "secret");
         let sig2 = sign_hmac_sha256("test", "secret");
         assert_eq!(sig1, sig2);
 
-        // Different inputs should produce different output
         let sig3 = sign_hmac_sha256("test2", "secret");
         assert_ne!(sig1, sig3);
     }
@@ -118,13 +111,11 @@ mod tests {
     #[test]
     fn test_timestamp() {
         let ts = current_timestamp_ms();
-        // Should be a reasonable timestamp (after 2020)
         assert!(ts > 1577836800000); // Jan 1, 2020
     }
 
     #[test]
     fn test_get_signature_format() {
-        // Test GET request signature (query string payload)
         let timestamp: u64 = 1658384314791;
         let api_key = "testkey";
         let recv_window = 5000;

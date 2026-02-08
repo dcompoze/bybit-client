@@ -122,7 +122,6 @@ impl WsClient {
         config: ClientConfig,
         channel: WsChannel,
     ) -> Result<(Self, mpsc::UnboundedReceiver<WsMessage>), BybitError> {
-        // Validate that we have credentials for private channels
         if channel.requires_auth() && !config.has_credentials() {
             return Err(BybitError::Config(
                 "Authentication required for private WebSocket channels".to_string(),
@@ -145,7 +144,6 @@ impl WsClient {
             running: running.clone(),
         };
 
-        // Spawn the WebSocket task
         tokio::spawn(Self::run_ws_loop(
             config,
             channel,
@@ -167,7 +165,6 @@ impl WsClient {
 
         let topics: Vec<String> = topics.iter().map(|t| t.to_string()).collect();
 
-        // Store in subscribed topics
         {
             let mut subscribed = self.subscribed_topics.write().await;
             for topic in &topics {
@@ -175,7 +172,6 @@ impl WsClient {
             }
         }
 
-        // Send subscribe command
         self.command_tx
             .send(WsCommand::Subscribe(topics))
             .map_err(|_| BybitError::WebSocket("Failed to send subscribe command".to_string()))?;
@@ -191,7 +187,6 @@ impl WsClient {
 
         let topics: Vec<String> = topics.iter().map(|t| t.to_string()).collect();
 
-        // Remove from subscribed topics
         {
             let mut subscribed = self.subscribed_topics.write().await;
             for topic in &topics {
@@ -199,7 +194,6 @@ impl WsClient {
             }
         }
 
-        // Send unsubscribe command
         self.command_tx
             .send(WsCommand::Unsubscribe(topics))
             .map_err(|_| {
@@ -322,7 +316,6 @@ impl WsClient {
         connected: &Arc<AtomicBool>,
         running: &Arc<AtomicBool>,
     ) -> Result<(), BybitError> {
-        // Connect
         let (ws_stream, _) = tokio::time::timeout(Duration::from_secs(30), connect_async(url))
             .await
             .map_err(|_| BybitError::WebSocket("Connection timeout".to_string()))?
@@ -333,12 +326,10 @@ impl WsClient {
 
         let (mut write, mut read) = ws_stream.split();
 
-        // Authenticate if needed
         if channel.requires_auth() {
             Self::authenticate(&mut write, config).await?;
         }
 
-        // Re-subscribe to any existing topics
         {
             let topics: Vec<String> = subscribed_topics.read().await.iter().cloned().collect();
             if !topics.is_empty() {
@@ -353,13 +344,10 @@ impl WsClient {
             }
         }
 
-        // Create ping interval
         let mut ping_interval = interval(Duration::from_secs(DEFAULT_PING_INTERVAL_SECS));
 
-        // Main loop
         loop {
             tokio::select! {
-                // Handle incoming messages
                 msg = read.next() => {
                     match msg {
                         Some(Ok(Message::Text(text))) => {
@@ -393,7 +381,6 @@ impl WsClient {
                     }
                 }
 
-                // Handle commands
                 cmd = command_rx.recv() => {
                     match cmd {
                         Some(WsCommand::Subscribe(topics)) => {
@@ -422,7 +409,6 @@ impl WsClient {
                     }
                 }
 
-                // Send periodic pings
                 _ = ping_interval.tick() => {
                     let op = WsOperation::ping();
                     let msg = serde_json::to_string(&op)
@@ -432,7 +418,6 @@ impl WsClient {
                     debug!("Sent ping");
                 }
 
-                // Check if we should stop
                 _ = tokio::time::sleep(Duration::from_millis(100)) => {
                     if !running.load(Ordering::SeqCst) {
                         info!("Stop requested");
@@ -461,7 +446,6 @@ impl WsClient {
             BybitError::Config("API secret required for authentication".to_string())
         })?;
 
-        // Generate expires (current time + 10 seconds in milliseconds)
         let expires = auth::current_timestamp_ms() + 10_000;
         let signature = auth::sign_ws_auth(expires, api_secret);
 
@@ -481,7 +465,6 @@ impl WsClient {
 
     /// Parse an incoming WebSocket message.
     fn parse_message(text: &str) -> Option<WsMessage> {
-        // Try to parse as JSON
         let value: serde_json::Value = match serde_json::from_str(text) {
             Ok(v) => v,
             Err(e) => {
@@ -490,23 +473,19 @@ impl WsClient {
             }
         };
 
-        // Check if it's a pong
         if value.get("op").and_then(|v| v.as_str()) == Some("pong") {
             if let Ok(pong) = serde_json::from_value(value.clone()) {
                 return Some(WsMessage::Pong(pong));
             }
         }
 
-        // Check if it's an operation response (has "success" field)
         if value.get("success").is_some() && value.get("topic").is_none() {
             if let Ok(response) = serde_json::from_value(value.clone()) {
                 return Some(WsMessage::OperationResponse(response));
             }
         }
 
-        // Check if it's a stream message (has "topic" field)
         if let Some(topic) = value.get("topic").and_then(|v| v.as_str()) {
-            // Route based on topic prefix - public streams
             if topic.starts_with("orderbook.") {
                 if let Ok(msg) = serde_json::from_value(value) {
                     return Some(WsMessage::Orderbook(Box::new(msg)));
@@ -528,7 +507,6 @@ impl WsClient {
                     return Some(WsMessage::Liquidation(Box::new(msg)));
                 }
             }
-            // Private stream topics
             else if topic == "position" || topic.starts_with("position.") {
                 if let Ok(msg) = serde_json::from_value(value) {
                     return Some(WsMessage::Position(Box::new(msg)));
@@ -556,7 +534,6 @@ impl WsClient {
             }
         }
 
-        // Return as raw if we couldn't parse it
         Some(WsMessage::Raw(text.to_string()))
     }
 }

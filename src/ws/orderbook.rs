@@ -172,17 +172,16 @@ impl LocalOrderbook {
     ///
     /// # Update Rules
     ///
-    /// - Snapshots replace the entire orderbook
+    /// - Snapshots replace the entire orderbook.
     /// - Deltas are applied incrementally:
-    ///   - If size is "0", the price level is removed
-    ///   - If the price level doesn't exist, it's inserted
-    ///   - If the price level exists, the size is updated
-    /// - If update_id is 1, treat it as a snapshot (orderbook reset)
+    ///   - If size is "0", the price level is removed.
+    ///   - If the price level does not exist, it is inserted.
+    ///   - If the price level exists, the size is updated.
+    /// - If `update_id` is 1, treat it as a snapshot.
     pub fn apply_update(
         &mut self,
         update: &WsStreamMessage<OrderbookData>,
     ) -> Result<(), BybitError> {
-        // Verify symbol matches
         if update.data.symbol != self.symbol {
             return Err(BybitError::InvalidParameter(format!(
                 "Symbol mismatch: expected {}, got {}",
@@ -190,13 +189,11 @@ impl LocalOrderbook {
             )));
         }
 
-        // Check if this is a snapshot or if update_id = 1 (reset signal)
         let is_snapshot = update.update_type == "snapshot" || update.data.update_id == 1;
 
         if is_snapshot {
             self.apply_snapshot(&update.data)?;
         } else {
-            // Only apply delta if we've been initialized
             if !self.initialized {
                 return Err(BybitError::InvalidParameter(
                     "Received delta before snapshot".to_string(),
@@ -214,11 +211,9 @@ impl LocalOrderbook {
 
     /// Apply a snapshot update (replaces entire orderbook).
     fn apply_snapshot(&mut self, data: &OrderbookData) -> Result<(), BybitError> {
-        // Clear existing data
         self.bids.clear();
         self.asks.clear();
 
-        // Add all bids
         for entry in &data.bids {
             let level = PriceLevel::from_entry(entry)?;
             let key = OrderedPrice {
@@ -228,7 +223,6 @@ impl LocalOrderbook {
             self.bids.insert(key, level);
         }
 
-        // Add all asks
         for entry in &data.asks {
             let level = PriceLevel::from_entry(entry)?;
             let key = OrderedPrice {
@@ -244,7 +238,6 @@ impl LocalOrderbook {
 
     /// Apply a delta update (incremental changes).
     fn apply_delta(&mut self, data: &OrderbookData) -> Result<(), BybitError> {
-        // Process bid updates
         for entry in &data.bids {
             let level = PriceLevel::from_entry(entry)?;
             let key = OrderedPrice {
@@ -253,15 +246,12 @@ impl LocalOrderbook {
             };
 
             if level.size_f64 == 0.0 {
-                // Remove the price level
                 self.bids.remove(&key);
             } else {
-                // Insert or update
                 self.bids.insert(key, level);
             }
         }
 
-        // Process ask updates
         for entry in &data.asks {
             let level = PriceLevel::from_entry(entry)?;
             let key = OrderedPrice {
@@ -270,10 +260,8 @@ impl LocalOrderbook {
             };
 
             if level.size_f64 == 0.0 {
-                // Remove the price level
                 self.asks.remove(&key);
             } else {
-                // Insert or update
                 self.asks.insert(key, level);
             }
         }
@@ -359,10 +347,10 @@ impl LocalOrderbook {
 
     /// Get orderbook imbalance ratio.
     ///
-    /// Returns a value between -1 and 1:
-    /// - Positive values indicate more bid depth (buying pressure)
-    /// - Negative values indicate more ask depth (selling pressure)
-    /// - Zero indicates balanced depth
+    /// Returns a value between -1 and 1.
+    /// - Positive values indicate more bid depth (buying pressure).
+    /// - Negative values indicate more ask depth (selling pressure).
+    /// - Zero indicates balanced depth.
     pub fn imbalance(&self) -> f64 {
         let bid_depth = self.bid_depth();
         let ask_depth = self.ask_depth();
@@ -452,12 +440,10 @@ mod tests {
         assert_eq!(ob.bid_levels(), 3);
         assert_eq!(ob.ask_levels(), 2);
 
-        // Best bid should be highest price
         let best_bid = ob.best_bid().unwrap();
         assert_eq!(best_bid.price, "50000");
         assert_eq!(best_bid.size, "1.5");
 
-        // Best ask should be lowest price
         let best_ask = ob.best_ask().unwrap();
         assert_eq!(best_ask.price, "50001");
         assert_eq!(best_ask.size, "0.8");
@@ -473,14 +459,13 @@ mod tests {
         );
         ob.apply_update(&snapshot).unwrap();
 
-        // Add a new bid level
         let delta = make_delta("BTCUSDT", vec![("49999", "2.0")], vec![], 2);
         ob.apply_update(&delta).unwrap();
 
         assert_eq!(ob.bid_levels(), 2);
         let top_bids = ob.top_bids(2);
-        assert_eq!(top_bids[0].price, "50000"); // Still best
-        assert_eq!(top_bids[1].price, "49999"); // New level
+        assert_eq!(top_bids[0].price, "50000");
+        assert_eq!(top_bids[1].price, "49999");
     }
 
     #[test]
@@ -493,14 +478,13 @@ mod tests {
         );
         ob.apply_update(&snapshot).unwrap();
 
-        // Update existing bid level
         let delta = make_delta("BTCUSDT", vec![("50000", "3.0")], vec![], 2);
         ob.apply_update(&delta).unwrap();
 
         assert_eq!(ob.bid_levels(), 1);
         let best_bid = ob.best_bid().unwrap();
         assert_eq!(best_bid.price, "50000");
-        assert_eq!(best_bid.size, "3.0"); // Updated
+        assert_eq!(best_bid.size, "3.0");
     }
 
     #[test]
@@ -513,13 +497,12 @@ mod tests {
         );
         ob.apply_update(&snapshot).unwrap();
 
-        // Delete a bid level (size = 0)
         let delta = make_delta("BTCUSDT", vec![("50000", "0")], vec![], 2);
         ob.apply_update(&delta).unwrap();
 
         assert_eq!(ob.bid_levels(), 1);
         let best_bid = ob.best_bid().unwrap();
-        assert_eq!(best_bid.price, "49999"); // Previous second-best is now best
+        assert_eq!(best_bid.price, "49999");
     }
 
     #[test]
@@ -555,12 +538,11 @@ mod tests {
         let mut ob = LocalOrderbook::new("BTCUSDT");
         let snapshot = make_snapshot(
             "BTCUSDT",
-            vec![("50000", "3.0")], // bid depth = 3
-            vec![("50001", "1.0")], // ask depth = 1
+            vec![("50000", "3.0")],
+            vec![("50001", "1.0")],
         );
         ob.apply_update(&snapshot).unwrap();
 
-        // imbalance = (3 - 1) / (3 + 1) = 0.5
         assert_eq!(ob.imbalance(), 0.5);
     }
 
@@ -592,23 +574,21 @@ mod tests {
         );
         ob.apply_update(&snapshot).unwrap();
 
-        // Simulate reset - delta with update_id = 1 should act as snapshot
         let reset = WsStreamMessage {
             topic: "orderbook.50.BTCUSDT".to_string(),
-            update_type: "delta".to_string(), // Even though it says delta
+            update_type: "delta".to_string(),
             ts: 1234567890002,
             data: OrderbookData {
                 symbol: "BTCUSDT".to_string(),
                 bids: vec![make_entry("49000", "5.0")],
                 asks: vec![make_entry("49001", "4.0")],
-                update_id: 1, // Reset signal
+                update_id: 1,
                 seq: Some(1),
             },
             cts: None,
         };
         ob.apply_update(&reset).unwrap();
 
-        // Should be completely replaced
         assert_eq!(ob.bid_levels(), 1);
         assert_eq!(ob.best_bid().unwrap().price, "49000");
     }

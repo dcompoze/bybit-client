@@ -1,10 +1,10 @@
 //! WebSocket client implementation.
 //!
 //! This module provides WebSocket support for:
-//! - Public streams (orderbook, trades, tickers, klines, liquidations)
-//! - Private streams (positions, orders, executions, wallet updates)
-//! - WebSocket Trade API for order management
-//! - Local orderbook management with delta updates
+//! - Public streams (orderbook, trades, tickers, klines, liquidations).
+//! - Private streams (positions, orders, executions, wallet updates).
+//! - WebSocket Trade API for order management.
+//! - Local orderbook management with delta updates.
 //!
 //! # Public Streams Example
 //!
@@ -13,13 +13,13 @@
 //!
 //! #[tokio::main]
 //! async fn main() -> Result<(), Box<dyn std::error::Error>> {
-//!     // Connect to linear perpetual public stream
+//!     // Connect to linear perpetual public stream.
 //!     let (client, mut receiver) = WsClient::connect_public(WsChannel::PublicLinear).await?;
 //!
-//!     // Subscribe to orderbook and trades
+//!     // Subscribe to orderbook and trades.
 //!     client.subscribe(&["orderbook.50.BTCUSDT", "publicTrade.BTCUSDT"]).await?;
 //!
-//!     // Process incoming messages
+//!     // Process incoming messages.
 //!     while let Some(msg) = receiver.recv().await {
 //!         match msg {
 //!             WsMessage::Orderbook(ob) => {
@@ -75,13 +75,13 @@
 //!
 //! #[tokio::main]
 //! async fn main() -> Result<(), Box<dyn std::error::Error>> {
-//!     // Connect with authentication
+//!     // Connect with authentication.
 //!     let (client, mut receiver) = WsClient::connect_private(
 //!         "your_api_key",
 //!         "your_api_secret",
 //!     ).await?;
 //!
-//!     // Subscribe to private topics
+//!     // Subscribe to private topics.
 //!     client.subscribe(&["position", "order", "execution"]).await?;
 //!
 //!     while let Some(msg) = receiver.recv().await {
@@ -95,18 +95,18 @@
 //! # WebSocket Topics
 //!
 //! ## Public Topics
-//! - `orderbook.{depth}.{symbol}` - Orderbook (depth: 1, 50, 200, 500)
-//! - `publicTrade.{symbol}` - Public trades
-//! - `tickers.{symbol}` - Ticker updates
-//! - `kline.{interval}.{symbol}` - Kline/candlestick data
-//! - `liquidation.{symbol}` - Liquidation events
+//! - `orderbook.{depth}.{symbol}` - Orderbook (depth: 1, 50, 200, 500).
+//! - `publicTrade.{symbol}` - Public trades.
+//! - `tickers.{symbol}` - Ticker updates.
+//! - `kline.{interval}.{symbol}` - Kline or candlestick data.
+//! - `liquidation.{symbol}` - Liquidation events.
 //!
 //! ## Private Topics
-//! - `position` - Position updates
-//! - `execution` - Execution updates
-//! - `order` - Order updates
-//! - `wallet` - Wallet balance updates
-//! - `greeks` - Options greeks updates
+//! - `position` - Position updates.
+//! - `execution` - Execution updates.
+//! - `order` - Order updates.
+//! - `wallet` - Wallet balance updates.
+//! - `greeks` - Options greeks updates.
 
 pub mod client;
 pub mod orderbook;

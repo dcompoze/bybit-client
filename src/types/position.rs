@@ -4,9 +4,6 @@ use serde::{Deserialize, Serialize};
 
 use crate::types::{Category, OrderType, PositionIdx, TriggerBy};
 
-// ============================================================================
-// Query Parameters
-// ============================================================================
 
 /// Parameters for getting position info.
 #[derive(Debug, Clone, Serialize)]
@@ -474,9 +471,6 @@ impl GetClosedPnlParams {
     }
 }
 
-// ============================================================================
-// Response Types
-// ============================================================================
 
 /// Position information.
 #[derive(Debug, Clone, Deserialize)]

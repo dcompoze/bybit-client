@@ -13,7 +13,6 @@ pub mod rest_urls {
     /// Demo trading API URL.
     pub const DEMO: &str = "https://api-demo.bybit.com";
 
-    // Regional endpoints
     /// Netherlands
     pub const NL: &str = "https://api.bybit.nl";
     /// Turkey

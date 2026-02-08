@@ -72,7 +72,6 @@ impl BybitError {
             BybitError::RateLimit { .. } => true,
             BybitError::Timeout => true,
             BybitError::Api { code, .. } => {
-                // Known retryable API error codes
                 matches!(code, 10002 | 10006 | 30034 | 30035 | 130035 | 130150)
             }
             _ => false,

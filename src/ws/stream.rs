@@ -15,11 +15,11 @@
 //!     let (client, receiver) = WsClient::connect_public(WsChannel::PublicLinear).await?;
 //!     client.subscribe(&["publicTrade.BTCUSDT", "tickers.BTCUSDT"]).await?;
 //!
-//!     // Create a stream from the receiver
+//!     // Create a stream from the receiver.
 //!     let stream = WsStream::new(receiver);
 //!
-//!     // Use stream combinators - filter only trade messages
-//!     // Note: filtered streams need to be pinned to use .next()
+//!     // Use stream combinators to filter trade messages.
+//!     // Note: Filtered streams need to be pinned to use `.next()`.
 //!     let mut trades = pin!(stream.trades());
 //!
 //!     while let Some(trade) = trades.next().await {

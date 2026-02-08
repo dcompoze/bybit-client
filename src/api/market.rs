@@ -289,9 +289,6 @@ impl MarketService {
     }
 }
 
-// ============================================================================
-// Request Parameter Types
-// ============================================================================
 
 /// Parameters for getting kline data.
 #[derive(Debug, Clone, Serialize)]

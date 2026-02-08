@@ -3,12 +3,12 @@
 //! These tests connect to Bybit's testnet with authentication to verify
 //! private WebSocket functionality.
 //!
-//! Run with: `cargo test --test ws_private_integration -- --ignored`
+//! Run with `cargo test --test ws_private_integration -- --ignored`.
 //!
 //! Note: These tests require:
-//! - BYBIT_API_KEY and BYBIT_API_SECRET environment variables
-//! - Network access to testnet
-//! - A testnet account with some positions/orders for full coverage
+//! - `BYBIT_API_KEY` and `BYBIT_API_SECRET` environment variables.
+//! - Network access to testnet.
+//! - A testnet account with some positions and orders for full coverage.
 
 use std::time::Duration;
 
@@ -46,7 +46,6 @@ async fn test_connect_private_authenticated() {
     let (client, _rx) = result.unwrap();
     assert!(client.is_connected());
 
-    // Allow time for authentication to complete
     tokio::time::sleep(Duration::from_secs(2)).await;
     assert!(client.is_connected());
 
@@ -61,7 +60,6 @@ async fn test_subscribe_position() {
         .await
         .expect("Failed to connect");
 
-    // Wait for auth to complete
     let mut authenticated = false;
     let deadline = tokio::time::Instant::now() + Duration::from_secs(10);
     while tokio::time::Instant::now() < deadline {
@@ -75,13 +73,11 @@ async fn test_subscribe_position() {
     }
     assert!(authenticated, "Authentication failed");
 
-    // Subscribe to position topic
     client
         .subscribe(&["position"])
         .await
         .expect("Failed to subscribe");
 
-    // Wait for subscription confirmation
     let deadline = tokio::time::Instant::now() + Duration::from_secs(10);
     let mut subscribed = false;
     while tokio::time::Instant::now() < deadline {
@@ -94,7 +90,6 @@ async fn test_subscribe_position() {
                 }
             }
             Ok(Some(WsMessage::Position(pos))) => {
-                // We got position data directly
                 assert!(!pos.data.is_empty() || pos.data.is_empty()); // Valid either way
                 subscribed = true;
                 break;
@@ -115,7 +110,6 @@ async fn test_subscribe_order() {
         .await
         .expect("Failed to connect");
 
-    // Wait for auth
     let deadline = tokio::time::Instant::now() + Duration::from_secs(10);
     while tokio::time::Instant::now() < deadline {
         let msg = timeout(Duration::from_secs(3), rx.recv()).await;
@@ -126,13 +120,11 @@ async fn test_subscribe_order() {
         }
     }
 
-    // Subscribe to order topic
     client
         .subscribe(&["order"])
         .await
         .expect("Failed to subscribe");
 
-    // Wait for subscription confirmation
     let deadline = tokio::time::Instant::now() + Duration::from_secs(10);
     let mut subscribed = false;
     while tokio::time::Instant::now() < deadline {
@@ -157,7 +149,6 @@ async fn test_subscribe_wallet() {
         .await
         .expect("Failed to connect");
 
-    // Wait for auth
     let deadline = tokio::time::Instant::now() + Duration::from_secs(10);
     while tokio::time::Instant::now() < deadline {
         let msg = timeout(Duration::from_secs(3), rx.recv()).await;
@@ -168,13 +159,11 @@ async fn test_subscribe_wallet() {
         }
     }
 
-    // Subscribe to wallet topic
     client
         .subscribe(&["wallet"])
         .await
         .expect("Failed to subscribe");
 
-    // Wait for subscription confirmation or wallet data
     let deadline = tokio::time::Instant::now() + Duration::from_secs(10);
     let mut received = false;
     while tokio::time::Instant::now() < deadline {
@@ -187,7 +176,6 @@ async fn test_subscribe_wallet() {
                 }
             }
             Ok(Some(WsMessage::Wallet(wallet))) => {
-                // Verify wallet data structure
                 assert!(!wallet.data.is_empty());
                 let w = &wallet.data[0];
                 assert!(!w.account_type.is_empty());
@@ -210,7 +198,6 @@ async fn test_subscribe_multiple_private_topics() {
         .await
         .expect("Failed to connect");
 
-    // Wait for auth
     let deadline = tokio::time::Instant::now() + Duration::from_secs(10);
     while tokio::time::Instant::now() < deadline {
         let msg = timeout(Duration::from_secs(3), rx.recv()).await;
@@ -221,13 +208,11 @@ async fn test_subscribe_multiple_private_topics() {
         }
     }
 
-    // Subscribe to multiple topics
     client
         .subscribe(&["position", "order", "execution", "wallet"])
         .await
         .expect("Failed to subscribe");
 
-    // Verify subscription was successful
     let topics = client.subscribed_topics().await;
     assert!(topics.contains(&"position".to_string()));
     assert!(topics.contains(&"order".to_string()));
@@ -244,12 +229,10 @@ async fn test_invalid_credentials() {
     let config = ClientConfig::new("invalid_key", "invalid_secret").testnet();
     let result = WsClient::connect_with_config(config, WsChannel::Private).await;
 
-    // Connection should succeed (auth happens after connect)
     assert!(result.is_ok());
 
     let (client, mut rx) = result.unwrap();
 
-    // Wait for auth response - should fail
     let deadline = tokio::time::Instant::now() + Duration::from_secs(10);
     let mut auth_failed = false;
     while tokio::time::Instant::now() < deadline {
@@ -278,7 +261,6 @@ async fn test_private_graceful_disconnect() {
 
     client.disconnect();
 
-    // Give time for disconnect
     tokio::time::sleep(Duration::from_millis(500)).await;
 
     assert!(!client.is_connected());

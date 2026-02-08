@@ -4,9 +4,6 @@ use serde::{Deserialize, Serialize};
 
 use crate::types::{AccountType, Category};
 
-// ============================================================================
-// Query Parameters
-// ============================================================================
 
 /// Parameters for getting wallet balance.
 #[derive(Debug, Clone, Serialize)]
@@ -354,9 +351,6 @@ impl SetMarginModeParams {
     }
 }
 
-// ============================================================================
-// Response Types
-// ============================================================================
 
 /// Coin balance within a wallet.
 #[derive(Debug, Clone, Deserialize)]

@@ -14,13 +14,13 @@ use crate::http::HttpClient;
 ///
 /// #[tokio::main]
 /// async fn main() -> Result<(), Box<dyn std::error::Error>> {
-///     // Create a public-only client
+///     // Create a public-only client.
 ///     let client = BybitClient::public_only()?;
 ///
-///     // Or create an authenticated client
+///     // Or create an authenticated client.
 ///     let client = BybitClient::new("api_key", "api_secret")?;
 ///
-///     // Use testnet
+///     // Use testnet.
 ///     let client = BybitClient::with_config(
 ///         ClientConfig::new("api_key", "api_secret").testnet()
 ///     )?;
@@ -79,10 +79,6 @@ impl BybitClient {
         self.config().has_credentials()
     }
 
-    // ========================================================================
-    // Service Accessors
-    // ========================================================================
-
     /// Get the market data service for public endpoints.
     ///
     /// # Example
@@ -113,7 +109,7 @@ impl BybitClient {
     /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
     /// let client = BybitClient::new("api_key", "api_secret")?;
     ///
-    /// // Place a market order
+    /// // Place a market order.
     /// let params = OrderParams::market(Category::Linear, "BTCUSDT", Side::Buy, "0.001");
     /// let result = client.trade().submit_order(&params).await?;
     /// println!("Order ID: {}", result.order_id);
@@ -171,10 +167,6 @@ impl BybitClient {
     pub fn account(&self) -> AccountService {
         AccountService::new(self.http.clone())
     }
-
-    // ========================================================================
-    // Low-level HTTP Methods
-    // ========================================================================
 
     /// Make a public GET request.
     pub async fn get<T, P>(&self, endpoint: &str, params: Option<&P>) -> Result<T, BybitError>

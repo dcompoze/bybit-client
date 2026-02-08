@@ -15,7 +15,7 @@
 //!     let config = ClientConfig::new("api_key", "api_secret");
 //!     let client = WsTradeClient::connect(config).await?;
 //!
-//!     // Submit a new order
+//!     // Submit a new order.
 //!     let result = client.create_order(CreateOrderRequest {
 //!         category: Category::Linear,
 //!         symbol: "BTCUSDT".to_string(),
@@ -62,9 +62,6 @@ const DEFAULT_TIMEOUT_MS: u64 = 10000;
 /// Default receive window.
 const DEFAULT_RECV_WINDOW: u32 = 5000;
 
-// ============================================================================
-// Request Types
-// ============================================================================
 
 /// Request for creating a new order.
 #[derive(Debug, Clone, Serialize)]
@@ -165,9 +162,6 @@ pub struct CancelOrderRequest {
     pub order_link_id: Option<String>,
 }
 
-// ============================================================================
-// Response Types
-// ============================================================================
 
 /// Result of a single order operation.
 #[derive(Debug, Clone, Deserialize)]
@@ -235,9 +229,6 @@ impl WsTradeResponse {
     }
 }
 
-// ============================================================================
-// Internal Types
-// ============================================================================
 
 /// WebSocket Trade API request wrapper.
 #[derive(Debug, Serialize)]
@@ -267,9 +258,6 @@ struct PendingRequest {
     sender: oneshot::Sender<Result<WsTradeResponse, BybitError>>,
 }
 
-// ============================================================================
-// WebSocket Trade Client
-// ============================================================================
 
 /// WebSocket Trade API client for low-latency order management.
 ///
@@ -306,20 +294,17 @@ impl WsTradeClient {
             .ok_or_else(|| BybitError::Auth("API secret required for trade API".to_string()))?
             .to_string();
 
-        // Build WebSocket URL
         let url = config.get_ws_trade_url();
 
         info!("Connecting to WebSocket Trade API: {}", url);
         let url = url.to_string();
 
-        // Connect to WebSocket
         let (ws_stream, _) = tokio_tungstenite::connect_async(&url)
             .await
             .map_err(|e| BybitError::WebSocket(format!("Connection failed: {}", e)))?;
 
         let (mut write, mut read) = ws_stream.split();
 
-        // Create channels for communication
         let (tx, mut rx) = mpsc::unbounded_channel::<Message>();
         let pending: Arc<RwLock<HashMap<String, PendingRequest>>> =
             Arc::new(RwLock::new(HashMap::new()));
@@ -328,14 +313,12 @@ impl WsTradeClient {
         let pending_clone = pending.clone();
         let connected_clone = connected.clone();
 
-        // Spawn message reader task
         tokio::spawn(async move {
             while let Some(msg) = read.next().await {
                 match msg {
                     Ok(Message::Text(text)) => {
                         debug!("Trade API received: {}", text);
 
-                        // Try to parse as response
                         if let Ok(response) = serde_json::from_str::<WsTradeResponse>(&text) {
                             let mut pending = pending_clone.write().await;
                             if let Some(request) = pending.remove(&response.req_id) {
@@ -345,7 +328,6 @@ impl WsTradeClient {
                     }
                     Ok(Message::Ping(data)) => {
                         debug!("Trade API ping received");
-                        // Pong is handled automatically by tungstenite
                         let _ = data;
                     }
                     Ok(Message::Close(_)) => {
@@ -362,7 +344,6 @@ impl WsTradeClient {
                 }
             }
 
-            // Cancel all pending requests on disconnect
             let mut pending = pending_clone.write().await;
             for (_, request) in pending.drain() {
                 let _ = request
@@ -371,7 +352,6 @@ impl WsTradeClient {
             }
         });
 
-        // Spawn message writer task
         tokio::spawn(async move {
             while let Some(msg) = rx.recv().await {
                 if let Err(e) = write.send(msg).await {
@@ -408,7 +388,6 @@ impl WsTradeClient {
         let timestamp = current_timestamp_ms();
         let recv_window = self.recv_window;
 
-        // Sign the request: timestamp + api_key + recv_window + payload
         let signature = sign_rest_request(
             timestamp,
             &self.api_key,
@@ -437,7 +416,6 @@ impl WsTradeClient {
 
         let req_id = self.generate_req_id();
 
-        // Serialize args for signing
         let args_json = serde_json::to_string(&args)
             .map_err(|e| BybitError::Serialization(e))?;
 
@@ -455,26 +433,22 @@ impl WsTradeClient {
 
         debug!("Trade API sending: {}", json);
 
-        // Create response channel
         let (tx, rx) = oneshot::channel();
         {
             let mut pending = self.pending.write().await;
             pending.insert(req_id.clone(), PendingRequest { sender: tx });
         }
 
-        // Send the message
         self.tx
             .send(Message::Text(json.into()))
             .map_err(|e| BybitError::WebSocket(format!("Send failed: {}", e)))?;
 
-        // Wait for response with timeout
         let result = timeout(Duration::from_millis(DEFAULT_TIMEOUT_MS), rx).await;
 
         match result {
             Ok(Ok(response)) => response,
             Ok(Err(_)) => Err(BybitError::WebSocket("Response channel closed".to_string())),
             Err(_) => {
-                // Remove pending request on timeout
                 let mut pending = self.pending.write().await;
                 pending.remove(&req_id);
                 Err(BybitError::Timeout)
@@ -482,9 +456,6 @@ impl WsTradeClient {
         }
     }
 
-    // ========================================================================
-    // Single Order Operations
-    // ========================================================================
 
     /// Create a new order.
     pub async fn create_order(
@@ -513,9 +484,6 @@ impl WsTradeClient {
         response.into_result()
     }
 
-    // ========================================================================
-    // Batch Order Operations
-    // ========================================================================
 
     /// Create multiple orders in a single request (max 10).
     pub async fn batch_create_orders(
@@ -532,7 +500,6 @@ impl WsTradeClient {
             ));
         }
 
-        // Ensure all orders have the same category
         let orders: Vec<_> = orders
             .into_iter()
             .map(|mut o| {
@@ -544,7 +511,6 @@ impl WsTradeClient {
         let response = self.send_request("order.create-batch", orders).await?;
 
         if response.is_success() {
-            // Parse the result list
             let list = response
                 .data
                 .get("result")
@@ -636,7 +602,6 @@ impl WsTradeClient {
     /// Disconnect from the WebSocket Trade API.
     pub async fn disconnect(&self) {
         *self.connected.write().await = false;
-        // The sender will be dropped, closing the connection
     }
 }
 

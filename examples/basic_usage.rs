@@ -1,19 +1,19 @@
 //! Basic usage example for the Bybit client.
 //!
-//! Run with: cargo run --example basic_usage
+//! Run with `cargo run --example basic_usage`.
 
 use bybit_client::api::market::{GetOrderbookParams, GetTickersParams};
 use bybit_client::{BybitClient, Category};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    // Initialize tracing for debug output
+    // Initialize tracing for debug output.
     tracing_subscriber::fmt::init();
 
-    // Create a public-only client (no authentication needed for public endpoints)
+    // Create a public-only client for public endpoints.
     let client = BybitClient::public_only()?;
 
-    // Get ticker data for BTCUSDT perpetual
+    // Get ticker data for BTCUSDT perpetual.
     println!("Fetching BTCUSDT ticker...\n");
 
     let params = GetTickersParams::new(Category::Linear).symbol("BTCUSDT");
@@ -28,7 +28,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         println!("24h Turnover: ${}", ticker.turnover_24h.as_deref().unwrap_or("N/A"));
     }
 
-    // Get orderbook
+    // Get the orderbook.
     println!("\nFetching BTCUSDT orderbook (top 5 levels)...\n");
 
     let orderbook_params = GetOrderbookParams::new(Category::Linear, "BTCUSDT").limit(5);

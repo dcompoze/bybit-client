@@ -121,7 +121,6 @@ impl HttpClient {
     {
         let url = self.build_url(endpoint);
 
-        // Serialize query params
         let query_string = if let Some(p) = params {
             serde_urlencoded::to_string(p).map_err(|e| {
                 BybitError::Serialization(serde_json::Error::io(std::io::Error::new(
@@ -133,14 +132,12 @@ impl HttpClient {
             String::new()
         };
 
-        // Serialize body
         let body_string = if let Some(b) = body {
             serde_json::to_string(b)?
         } else {
             String::new()
         };
 
-        // Build full URL with query string for GET requests
         let full_url = if !query_string.is_empty() {
             format!("{}?{}", url, query_string)
         } else {
@@ -149,19 +146,16 @@ impl HttpClient {
 
         let mut request = self.client.request(method.clone(), &full_url);
 
-        // Add body for POST
         if !body_string.is_empty() {
             request = request
                 .header("Content-Type", "application/json")
                 .body(body_string.clone());
         }
 
-        // Add authentication headers if signed
         if signed {
             request = self.add_auth_headers(request, &query_string, &body_string)?;
         }
 
-        // Add referer if configured
         if let Some(ref referer) = self.config.referer {
             request = request.header("Referer", referer);
         }
@@ -178,10 +172,8 @@ impl HttpClient {
             }
         }
 
-        // Send request
         let response = request.send().await?;
 
-        // Handle response
         self.handle_response(response).await
     }
 
@@ -206,7 +198,6 @@ impl HttpClient {
         let timestamp = self.get_timestamp();
         let recv_window = self.config.recv_window;
 
-        // Payload is query string for GET, body for POST
         let payload = if body_string.is_empty() {
             query_string
         } else {
@@ -234,14 +225,11 @@ impl HttpClient {
             debug!(status = %status, "Received response");
         }
 
-        // Parse response body
         let body = response.text().await?;
 
-        // Check for HTTP errors
         if !status.is_success() {
             warn!(status = %status, body = %body, "HTTP error");
 
-            // Try to parse as API error
             if let Ok(api_response) = serde_json::from_str::<ApiResponse<serde_json::Value>>(&body)
             {
                 return Err(BybitError::api_error(
@@ -260,10 +248,8 @@ impl HttpClient {
             trace!(body = %body, "Response body");
         }
 
-        // Parse as ApiResponse
         let api_response: ApiResponse<T> = serde_json::from_str(&body)?;
 
-        // Check API-level errors
         api_response.into_result()
     }
 
@@ -279,7 +265,6 @@ impl HttpClient {
         let server_time: ServerTime = self.get("/v5/market/time", None::<&()>).await?;
         let end = current_timestamp_ms();
 
-        // Calculate latency and offset
         let latency = (end - start) / 2;
         let server_ms = server_time.as_millis();
         let offset = server_ms as i64 - (end as i64) + (latency as i64);

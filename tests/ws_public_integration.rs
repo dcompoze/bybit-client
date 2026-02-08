@@ -1,7 +1,7 @@
 //! WebSocket public stream integration tests.
 //!
 //! These tests connect to Bybit's testnet to verify WebSocket functionality.
-//! Run with: `cargo test --test ws_public_integration -- --ignored`
+//! Run with `cargo test --test ws_public_integration -- --ignored`.
 //!
 //! Note: These tests require network access and may occasionally fail due to
 //! network conditions or testnet availability.
@@ -32,7 +32,6 @@ async fn test_connect_public_linear() {
     let (client, _rx) = result.unwrap();
     assert!(client.is_connected());
 
-    // Allow some time to ensure connection is stable
     tokio::time::sleep(Duration::from_millis(500)).await;
     assert!(client.is_connected());
 
@@ -59,19 +58,16 @@ async fn test_subscribe_orderbook() {
         .await
         .expect("Failed to connect");
 
-    // Subscribe to BTCUSDT orderbook
     client
         .subscribe(&["orderbook.50.BTCUSDT"])
         .await
         .expect("Failed to subscribe");
 
-    // Wait for first message (should be a snapshot)
     let msg = timeout(Duration::from_secs(10), rx.recv())
         .await
         .expect("Timeout waiting for message")
         .expect("Channel closed");
 
-    // Verify we got an orderbook or operation response
     match msg {
         WsMessage::Orderbook(ob) => {
             assert_eq!(ob.data.symbol, "BTCUSDT");
@@ -80,7 +76,6 @@ async fn test_subscribe_orderbook() {
         }
         WsMessage::OperationResponse(resp) => {
             assert!(resp.success, "Subscription failed: {:?}", resp.ret_msg);
-            // After operation response, next should be orderbook data
             let next = timeout(Duration::from_secs(10), rx.recv())
                 .await
                 .expect("Timeout")
@@ -88,7 +83,6 @@ async fn test_subscribe_orderbook() {
             assert!(matches!(next, WsMessage::Orderbook(_)));
         }
         _ => {
-            // First message might be pong or other, keep receiving
         }
     }
 
@@ -110,7 +104,6 @@ async fn test_subscribe_trades() {
 
     let mut stream = rx.into_stream();
 
-    // Wait for either a subscription response or trade data
     let mut received_trade = false;
     let mut received_sub_response = false;
 
@@ -134,7 +127,6 @@ async fn test_subscribe_trades() {
             Ok(None) => break,
             Err(_) => {
                 if received_sub_response {
-                    // Trades might not happen immediately on testnet
                     break;
                 }
             }
@@ -162,7 +154,6 @@ async fn test_subscribe_ticker() {
         .await
         .expect("Failed to subscribe");
 
-    // Wait for ticker data (should come quickly as it updates frequently)
     let deadline = tokio::time::Instant::now() + Duration::from_secs(15);
     let mut received_ticker = false;
 
@@ -236,13 +227,11 @@ async fn test_unsubscribe() {
         .await
         .expect("Failed to connect");
 
-    // Subscribe first
     client
         .subscribe(&["tickers.BTCUSDT"])
         .await
         .expect("Failed to subscribe");
 
-    // Wait for subscription confirmation
     let mut subscribed = false;
     let deadline = tokio::time::Instant::now() + Duration::from_secs(10);
     while tokio::time::Instant::now() < deadline {
@@ -257,13 +246,11 @@ async fn test_unsubscribe() {
     }
     assert!(subscribed, "Failed to confirm subscription");
 
-    // Unsubscribe
     client
         .unsubscribe(&["tickers.BTCUSDT"])
         .await
         .expect("Failed to unsubscribe");
 
-    // Verify topics list is empty
     let topics = client.subscribed_topics().await;
     assert!(topics.is_empty(), "Topics not cleared after unsubscribe");
 
@@ -298,14 +285,12 @@ async fn test_local_orderbook_with_real_data() {
                 updates_applied += 1;
 
                 if orderbook.is_initialized() {
-                    // Verify orderbook state
                     assert!(orderbook.bid_levels() > 0, "No bid levels after update");
                     assert!(orderbook.ask_levels() > 0, "No ask levels after update");
 
                     let best_bid = orderbook.best_bid().expect("No best bid");
                     let best_ask = orderbook.best_ask().expect("No best ask");
 
-                    // Best bid should be less than best ask
                     assert!(
                         best_bid.price_f64 < best_ask.price_f64,
                         "Best bid {} >= best ask {}",
@@ -313,7 +298,6 @@ async fn test_local_orderbook_with_real_data() {
                         best_ask.price
                     );
 
-                    // Spread should be positive
                     let spread = orderbook.spread().expect("No spread");
                     assert!(spread > 0.0, "Spread should be positive");
                 }
@@ -347,10 +331,8 @@ async fn test_ws_stream_filtering() {
 
     let stream = WsStream::new(rx);
 
-    // Filter only orderbook messages
     let mut orderbooks = pin!(stream.orderbooks());
 
-    // Should receive orderbook data
     let msg = timeout(Duration::from_secs(10), orderbooks.next())
         .await
         .expect("Timeout waiting for orderbook");
@@ -370,8 +352,6 @@ async fn test_heartbeat() {
         .await
         .expect("Failed to connect");
 
-    // Wait long enough to see heartbeat activity (ping is every 20s)
-    // We'll just verify the connection stays alive
     let mut pong_received = false;
 
     let deadline = tokio::time::Instant::now() + Duration::from_secs(25);
@@ -384,7 +364,6 @@ async fn test_heartbeat() {
             break;
         }
 
-        // Connection should remain open
         assert!(client.is_connected(), "Connection lost during heartbeat test");
     }
 
@@ -404,9 +383,7 @@ async fn test_graceful_disconnect() {
 
     client.disconnect();
 
-    // Give some time for disconnect to complete
     tokio::time::sleep(Duration::from_millis(500)).await;
 
-    // After disconnect, is_connected should return false
     assert!(!client.is_connected());
 }

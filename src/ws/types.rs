@@ -4,9 +4,6 @@ use serde::{Deserialize, Serialize};
 
 use crate::types::Category;
 
-// ============================================================================
-// Connection/Protocol Messages
-// ============================================================================
 
 /// WebSocket operation message (subscribe, unsubscribe, ping, auth).
 #[derive(Debug, Clone, Serialize)]
@@ -106,9 +103,6 @@ pub struct WsPong {
     pub op: String,
 }
 
-// ============================================================================
-// Public Stream Data Types
-// ============================================================================
 
 /// Generic WebSocket message wrapper for stream data.
 #[derive(Debug, Clone, Deserialize)]
@@ -296,9 +290,6 @@ pub struct LiquidationData {
     pub updated_time: u64,
 }
 
-// ============================================================================
-// Private Stream Data Types
-// ============================================================================
 
 /// Generic private WebSocket message wrapper.
 #[derive(Debug, Clone, Deserialize)]
@@ -743,9 +734,6 @@ pub struct GreeksData {
     pub total_theta: Option<String>,
 }
 
-// ============================================================================
-// High-level Message Enum
-// ============================================================================
 
 /// High-level WebSocket message types.
 #[derive(Debug, Clone)]
@@ -780,9 +768,6 @@ pub enum WsMessage {
     Raw(String),
 }
 
-// ============================================================================
-// Configuration Types
-// ============================================================================
 
 /// WebSocket channel type (determines which URL to connect to).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]

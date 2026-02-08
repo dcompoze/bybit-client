@@ -19,10 +19,6 @@ impl TradeService {
         Self { http }
     }
 
-    // ========================================================================
-    // Order Management
-    // ========================================================================
-
     /// Submit a new order.
     ///
     /// # Example
@@ -33,12 +29,12 @@ impl TradeService {
     /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
     /// let client = BybitClient::new("api_key", "api_secret")?;
     ///
-    /// // Place a market order
+    /// // Place a market order.
     /// let params = OrderParams::market(Category::Linear, "BTCUSDT", Side::Buy, "0.001");
     /// let result = client.trade().submit_order(&params).await?;
     /// println!("Order ID: {}", result.order_id);
     ///
-    /// // Place a limit order
+    /// // Place a limit order.
     /// let params = OrderParams::limit(Category::Spot, "BTCUSDT", Side::Buy, "0.001", "50000");
     /// let result = client.trade().submit_order(&params).await?;
     /// # Ok(())
@@ -105,11 +101,11 @@ impl TradeService {
     /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
     /// let client = BybitClient::new("api_key", "api_secret")?;
     ///
-    /// // Cancel all linear orders
+    /// // Cancel all linear orders.
     /// let params = CancelAllOrdersParams::new(Category::Linear);
     /// let result = client.trade().cancel_all_orders(&params).await?;
     ///
-    /// // Cancel all orders for a specific symbol
+    /// // Cancel all orders for a specific symbol.
     /// let params = CancelAllOrdersParams::new(Category::Spot)
     ///     .symbol("BTCUSDT");
     /// let result = client.trade().cancel_all_orders(&params).await?;
@@ -124,10 +120,6 @@ impl TradeService {
             .post_signed("/v5/order/cancel-all", Some(params))
             .await
     }
-
-    // ========================================================================
-    // Order Queries
-    // ========================================================================
 
     /// Get open/active orders.
     ///
@@ -245,10 +237,6 @@ impl TradeService {
             .get_signed("/v5/order/spot-borrow-check", Some(params))
             .await
     }
-
-    // ========================================================================
-    // Batch Operations
-    // ========================================================================
 
     /// Submit multiple orders in a single request.
     ///

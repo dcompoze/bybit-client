@@ -1,12 +1,12 @@
 //! WebSocket Trade API integration tests.
 //!
 //! These tests connect to Bybit's testnet to verify WebSocket Trade API functionality.
-//! Run with: `cargo test --test ws_trade_integration -- --ignored`
+//! Run with `cargo test --test ws_trade_integration -- --ignored`.
 //!
 //! Note: These tests require:
-//! - BYBIT_API_KEY and BYBIT_API_SECRET environment variables
-//! - Network access to testnet
-//! - Sufficient testnet balance for order placement
+//! - `BYBIT_API_KEY` and `BYBIT_API_SECRET` environment variables.
+//! - Network access to testnet.
+//! - Sufficient testnet balance for order placement.
 
 use std::time::Duration;
 
@@ -68,7 +68,6 @@ async fn test_create_limit_order() {
         .await
         .expect("Failed to connect");
 
-    // Create a limit order far from market price (won't fill)
     let request = CreateOrderRequest {
         category: Category::Linear,
         symbol: "BTCUSDT".to_string(),
@@ -95,7 +94,6 @@ async fn test_create_limit_order() {
             assert!(!order.order_id.is_empty());
             println!("Created order: {}", order.order_id);
 
-            // Cancel the order we just created
             let cancel_request = CancelOrderRequest {
                 category: Category::Linear,
                 symbol: "BTCUSDT".to_string(),
@@ -107,7 +105,6 @@ async fn test_create_limit_order() {
             assert!(cancel_result.is_ok(), "Failed to cancel: {:?}", cancel_result.err());
         }
         Err(e) => {
-            // Order might fail due to insufficient balance or other reasons on testnet
             println!("Order creation failed (may be expected on testnet): {:?}", e);
         }
     }
@@ -132,7 +129,6 @@ async fn test_cancel_nonexistent_order() {
 
     let result = client.cancel_order(request).await;
 
-    // Should fail with an error
     assert!(result.is_err());
     let err = result.unwrap_err();
     println!("Expected error for non-existent order: {:?}", err);
@@ -148,7 +144,6 @@ async fn test_amend_order() {
         .await
         .expect("Failed to connect");
 
-    // First create an order
     let order_link_id = format!("test-amend-{}", timestamp_ms());
     let create_request = CreateOrderRequest {
         category: Category::Linear,
@@ -172,7 +167,6 @@ async fn test_amend_order() {
     let create_result = client.create_order(create_request).await;
 
     if let Ok(order) = create_result {
-        // Amend the order
         let amend_request = AmendOrderRequest {
             category: Category::Linear,
             symbol: "BTCUSDT".to_string(),
@@ -198,7 +192,6 @@ async fn test_amend_order() {
             }
         }
 
-        // Clean up - cancel the order
         let cancel_request = CancelOrderRequest {
             category: Category::Linear,
             symbol: "BTCUSDT".to_string(),
@@ -268,7 +261,6 @@ async fn test_batch_create_orders() {
         Ok(results) => {
             println!("Batch created {} orders", results.len());
 
-            // Clean up - cancel all created orders
             let cancel_requests: Vec<_> = results
                 .iter()
                 .map(|r| CancelOrderRequest {
@@ -299,7 +291,6 @@ async fn test_batch_order_limit() {
         .await
         .expect("Failed to connect");
 
-    // Create more than 10 orders
     let orders: Vec<CreateOrderRequest> = (0..11)
         .map(|i| CreateOrderRequest {
             category: Category::Linear,
@@ -323,7 +314,6 @@ async fn test_batch_order_limit() {
 
     let result = client.batch_create_orders(Category::Linear, orders).await;
 
-    // Should fail with invalid parameter error
     assert!(result.is_err());
     let err = result.unwrap_err();
     assert!(format!("{:?}", err).contains("limit"));

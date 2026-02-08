@@ -86,7 +86,6 @@ impl<'de> Deserialize<'de> for OrderbookEntry {
     where
         D: serde::Deserializer<'de>,
     {
-        // API returns [price, size] as array
         let arr: Vec<String> = Vec::deserialize(deserializer)?;
         Ok(OrderbookEntry {
             price: arr.first().cloned().unwrap_or_default(),

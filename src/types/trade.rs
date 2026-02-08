@@ -6,9 +6,6 @@ use crate::types::{
     Category, OrderStatus, OrderType, PositionIdx, Side, StopOrderType, TimeInForce, TriggerBy,
 };
 
-// ============================================================================
-// Order Creation Parameters
-// ============================================================================
 
 /// Parameters for creating a new order.
 #[derive(Debug, Clone, Serialize)]
@@ -234,9 +231,6 @@ impl OrderParams {
     }
 }
 
-// ============================================================================
-// Amend Order Parameters
-// ============================================================================
 
 /// Parameters for amending an existing order.
 #[derive(Debug, Clone, Serialize)]
@@ -374,9 +368,6 @@ impl AmendOrderParams {
     }
 }
 
-// ============================================================================
-// Cancel Order Parameters
-// ============================================================================
 
 /// Parameters for canceling an order.
 #[derive(Debug, Clone, Serialize)]
@@ -435,9 +426,6 @@ impl CancelOrderParams {
     }
 }
 
-// ============================================================================
-// Cancel All Orders Parameters
-// ============================================================================
 
 /// Parameters for canceling all orders.
 #[derive(Debug, Clone, Serialize)]
@@ -494,9 +482,6 @@ impl CancelAllOrdersParams {
     }
 }
 
-// ============================================================================
-// Query Parameters
-// ============================================================================
 
 /// Parameters for getting open/active orders.
 #[derive(Debug, Clone, Serialize)]
@@ -814,9 +799,6 @@ impl GetBorrowQuotaParams {
     }
 }
 
-// ============================================================================
-// Batch Order Parameters
-// ============================================================================
 
 /// Single order in a batch create request.
 #[derive(Debug, Clone, Serialize)]
@@ -1118,9 +1100,6 @@ impl BatchCancelOrderParams {
     }
 }
 
-// ============================================================================
-// Response Types
-// ============================================================================
 
 /// Result of order creation/amendment/cancellation.
 #[derive(Debug, Clone, Deserialize)]
