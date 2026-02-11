@@ -1,6 +1,6 @@
-## bybit-client
+# bybit-client
 
-A Rust client library for the [Bybit V5 API](https://bybit-exchange.github.io/docs/).
+A Rust client library for the [Bybit V5 API](https://bybit-exchange.github.io/docs/):
 
 - Full REST API V5 coverage for market data, trading, positions, and account management
 - WebSocket support for real-time public and private streams
@@ -12,25 +12,18 @@ A Rust client library for the [Bybit V5 API](https://bybit-exchange.github.io/do
 - Automatic retry with exponential backoff
 - Testnet and demo trading support
 
-## Installation
+## Library
 
-```toml
-[dependencies]
-bybit-client = "0.1"
-```
-
-## REST API
+Public REST API client:
 
 ```rust
 use bybit_client::{BybitClient, Category};
 use bybit_client::api::market::GetTickersParams;
 
 #[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    // Create a public-only client (no authentication needed for public endpoints)
+async fn main() -> Result<()> {
     let client = BybitClient::public_only()?;
 
-    // Get ticker data
     let params = GetTickersParams::new(Category::Linear).symbol("BTCUSDT");
     let tickers = client.market().get_tickers(&params).await?;
 
@@ -42,23 +35,20 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 ```
 
-## Authenticated client
+Authenticated client:
 
 ```rust
 use bybit_client::{BybitClient, ClientConfig, Category, Side};
 use bybit_client::types::trade::OrderParams;
 
 #[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    // Create an authenticated client
+async fn main() -> Result<()> {
     let client = BybitClient::new("your_api_key", "your_api_secret")?;
 
-    // Or use testnet for testing
     let client = BybitClient::with_config(
         ClientConfig::new("api_key", "api_secret").testnet()
     )?;
 
-    // Place a market order
     let params = OrderParams::market(Category::Linear, "BTCUSDT", Side::Buy, "0.001");
     let result = client.trade().submit_order(&params).await?;
     println!("Order ID: {}", result.order_id);
@@ -67,20 +57,17 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 ```
 
-## WebSocket streams
+WebSocket streams:
 
 ```rust
 use bybit_client::ws::{WsClient, WsChannel, WsMessage};
 
 #[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    // Connect to public stream
+async fn main() -> Result<()> {
     let (client, mut receiver) = WsClient::connect_public(WsChannel::PublicLinear).await?;
 
-    // Subscribe to orderbook and trades
     client.subscribe(&["orderbook.50.BTCUSDT", "publicTrade.BTCUSDT"]).await?;
 
-    // Process incoming messages
     while let Some(msg) = receiver.recv().await {
         match msg {
             WsMessage::Orderbook(ob) => {
@@ -101,13 +88,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 ```
 
-## Local orderbook
+Local orderbook:
 
 ```rust
 use bybit_client::ws::{WsClient, WsChannel, WsMessage, LocalOrderbook};
 
 #[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
+async fn main() -> Result<()> {
     let (client, mut receiver) = WsClient::connect_public(WsChannel::PublicLinear).await?;
     client.subscribe(&["orderbook.50.BTCUSDT"]).await?;
 
@@ -129,20 +116,18 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 ```
 
-### Private WebSocket streams
+Private WebSocket streams:
 
 ```rust
 use bybit_client::ws::{WsClient, WsMessage};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    // Connect with authentication
     let (client, mut receiver) = WsClient::connect_private(
         "your_api_key",
         "your_api_secret",
     ).await?;
 
-    // Subscribe to private topics
     client.subscribe(&["position", "order", "execution"]).await?;
 
     while let Some(msg) = receiver.recv().await {
@@ -160,7 +145,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 ## API coverage
 
-### REST API services
+REST API services:
 
 | Service | Description | Authentication |
 |---------|-------------|----------------|
@@ -169,9 +154,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 | `position()` | Position information and management | Required |
 | `account()` | Wallet balance and account info | Required |
 
-### WebSocket topics
-
-#### Public topics
+Public WebSocket topics:
 
 - `orderbook.{depth}.{symbol}` - Orderbook (depth: 1, 50, 200, 500)
 - `publicTrade.{symbol}` - Public trades
@@ -179,7 +162,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 - `kline.{interval}.{symbol}` - Kline/candlestick data
 - `liquidation.{symbol}` - Liquidation events
 
-#### Private topics
+Private WebSocket topics:
 
 - `position` - Position updates
 - `execution` - Execution updates
@@ -200,9 +183,9 @@ let config = ClientConfig::new("api_key", "api_secret")
 
 ## Environment variables
 
-For convenience, you can set credentials via environment variables:
+You can set credentials via environment variables:
 
 ```bash
-export BYBIT_API_KEY="your_api_key"
-export BYBIT_API_SECRET="your_api_secret"
+export BYBIT_API_KEY=""
+export BYBIT_API_SECRET=""
 ```
