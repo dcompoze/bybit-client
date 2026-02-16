@@ -1,9 +1,9 @@
 //! Main Bybit client.
 
-use crate::api::{AccountService, MarketService, PositionService, TradeService};
 use crate::config::ClientConfig;
 use crate::error::BybitError;
 use crate::http::HttpClient;
+use crate::rest::{AccountService, MarketService, PositionService, TradeService};
 
 /// Main client for interacting with the Bybit API.
 ///

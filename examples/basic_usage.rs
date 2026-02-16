@@ -2,7 +2,7 @@
 //!
 //! Run with `cargo run --example basic_usage`.
 
-use bybit_client::api::market::{GetOrderbookParams, GetTickersParams};
+use bybit_client::rest::market::{GetOrderbookParams, GetTickersParams};
 use bybit_client::{BybitClient, Category};
 
 #[tokio::main]
@@ -21,11 +21,26 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     for ticker in &tickers.list {
         println!("Symbol:       {}", ticker.symbol);
-        println!("Last Price:   ${}", ticker.last_price.as_deref().unwrap_or("N/A"));
-        println!("24h High:     ${}", ticker.high_price_24h.as_deref().unwrap_or("N/A"));
-        println!("24h Low:      ${}", ticker.low_price_24h.as_deref().unwrap_or("N/A"));
-        println!("24h Volume:   {}", ticker.volume_24h.as_deref().unwrap_or("N/A"));
-        println!("24h Turnover: ${}", ticker.turnover_24h.as_deref().unwrap_or("N/A"));
+        println!(
+            "Last Price:   ${}",
+            ticker.last_price.as_deref().unwrap_or("N/A")
+        );
+        println!(
+            "24h High:     ${}",
+            ticker.high_price_24h.as_deref().unwrap_or("N/A")
+        );
+        println!(
+            "24h Low:      ${}",
+            ticker.low_price_24h.as_deref().unwrap_or("N/A")
+        );
+        println!(
+            "24h Volume:   {}",
+            ticker.volume_24h.as_deref().unwrap_or("N/A")
+        );
+        println!(
+            "24h Turnover: ${}",
+            ticker.turnover_24h.as_deref().unwrap_or("N/A")
+        );
     }
 
     // Get the orderbook.

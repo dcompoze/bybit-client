@@ -18,7 +18,7 @@ Public REST API client:
 
 ```rust
 use bybit_client::{BybitClient, Category};
-use bybit_client::api::market::GetTickersParams;
+use bybit_client::rest::market::GetTickersParams;
 
 #[tokio::main]
 async fn main() -> Result<()> {

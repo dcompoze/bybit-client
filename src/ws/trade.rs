@@ -41,13 +41,13 @@
 //! ```
 
 use std::collections::HashMap;
-use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::Duration;
 
 use futures_util::{SinkExt, StreamExt};
 use serde::{Deserialize, Serialize};
-use tokio::sync::{mpsc, oneshot, RwLock};
+use tokio::sync::{RwLock, mpsc, oneshot};
 use tokio::time::timeout;
 use tokio_tungstenite::tungstenite::Message;
 use tracing::{debug, error, info};
@@ -61,7 +61,6 @@ use crate::types::{Category, OrderType, Side, TimeInForce};
 const DEFAULT_TIMEOUT_MS: u64 = 10000;
 /// Default receive window.
 const DEFAULT_RECV_WINDOW: u32 = 5000;
-
 
 /// Request for creating a new order.
 #[derive(Debug, Clone, Serialize)]
@@ -162,7 +161,6 @@ pub struct CancelOrderRequest {
     pub order_link_id: Option<String>,
 }
 
-
 /// Result of a single order operation.
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -221,14 +219,12 @@ impl WsTradeResponse {
     /// Convert to a typed result.
     pub fn into_result<T: for<'de> Deserialize<'de>>(self) -> Result<T, BybitError> {
         if self.is_success() {
-            serde_json::from_value(self.data)
-                .map_err(|e| BybitError::Serialization(e))
+            serde_json::from_value(self.data).map_err(BybitError::Serialization)
         } else {
             Err(BybitError::api_error(self.ret_code, self.ret_msg))
         }
     }
 }
-
 
 /// WebSocket Trade API request wrapper.
 #[derive(Debug, Serialize)]
@@ -257,7 +253,6 @@ struct WsTradeHeader {
 struct PendingRequest {
     sender: oneshot::Sender<Result<WsTradeResponse, BybitError>>,
 }
-
 
 /// WebSocket Trade API client for low-latency order management.
 ///
@@ -416,8 +411,7 @@ impl WsTradeClient {
 
         let req_id = self.generate_req_id();
 
-        let args_json = serde_json::to_string(&args)
-            .map_err(|e| BybitError::Serialization(e))?;
+        let args_json = serde_json::to_string(&args).map_err(BybitError::Serialization)?;
 
         let header = self.create_header(&args_json);
 
@@ -428,8 +422,7 @@ impl WsTradeClient {
             args,
         };
 
-        let json = serde_json::to_string(&request)
-            .map_err(|e| BybitError::Serialization(e))?;
+        let json = serde_json::to_string(&request).map_err(BybitError::Serialization)?;
 
         debug!("Trade API sending: {}", json);
 
@@ -456,7 +449,6 @@ impl WsTradeClient {
         }
     }
 
-
     /// Create a new order.
     pub async fn create_order(
         &self,
@@ -467,10 +459,7 @@ impl WsTradeClient {
     }
 
     /// Amend an existing order.
-    pub async fn amend_order(
-        &self,
-        request: AmendOrderRequest,
-    ) -> Result<OrderResult, BybitError> {
+    pub async fn amend_order(&self, request: AmendOrderRequest) -> Result<OrderResult, BybitError> {
         let response = self.send_request("order.amend", vec![request]).await?;
         response.into_result()
     }
@@ -483,7 +472,6 @@ impl WsTradeClient {
         let response = self.send_request("order.cancel", vec![request]).await?;
         response.into_result()
     }
-
 
     /// Create multiple orders in a single request (max 10).
     pub async fn batch_create_orders(
@@ -503,7 +491,7 @@ impl WsTradeClient {
         let orders: Vec<_> = orders
             .into_iter()
             .map(|mut o| {
-                o.category = category.clone();
+                o.category = category;
                 o
             })
             .collect();
@@ -517,7 +505,7 @@ impl WsTradeClient {
                 .and_then(|r| r.get("list"))
                 .cloned()
                 .unwrap_or(serde_json::Value::Array(vec![]));
-            serde_json::from_value(list).map_err(|e| BybitError::Serialization(e))
+            serde_json::from_value(list).map_err(BybitError::Serialization)
         } else {
             Err(BybitError::api_error(response.ret_code, response.ret_msg))
         }
@@ -541,7 +529,7 @@ impl WsTradeClient {
         let orders: Vec<_> = orders
             .into_iter()
             .map(|mut o| {
-                o.category = category.clone();
+                o.category = category;
                 o
             })
             .collect();
@@ -555,7 +543,7 @@ impl WsTradeClient {
                 .and_then(|r| r.get("list"))
                 .cloned()
                 .unwrap_or(serde_json::Value::Array(vec![]));
-            serde_json::from_value(list).map_err(|e| BybitError::Serialization(e))
+            serde_json::from_value(list).map_err(BybitError::Serialization)
         } else {
             Err(BybitError::api_error(response.ret_code, response.ret_msg))
         }
@@ -579,7 +567,7 @@ impl WsTradeClient {
         let orders: Vec<_> = orders
             .into_iter()
             .map(|mut o| {
-                o.category = category.clone();
+                o.category = category;
                 o
             })
             .collect();
@@ -593,7 +581,7 @@ impl WsTradeClient {
                 .and_then(|r| r.get("list"))
                 .cloned()
                 .unwrap_or(serde_json::Value::Array(vec![]));
-            serde_json::from_value(list).map_err(|e| BybitError::Serialization(e))
+            serde_json::from_value(list).map_err(BybitError::Serialization)
         } else {
             Err(BybitError::api_error(response.ret_code, response.ret_msg))
         }

@@ -46,12 +46,12 @@
 //!     .timeout_ms(30000);           // Set request timeout to 30 seconds.
 //! ```
 
-pub mod api;
 pub mod auth;
 pub mod client;
 pub mod config;
 pub mod error;
 pub mod http;
+pub mod rest;
 pub mod types;
 pub mod ws;
 

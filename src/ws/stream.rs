@@ -148,7 +148,9 @@ impl WsStream {
     }
 
     /// Create a filtered stream that only yields fast execution updates (private stream).
-    pub fn executions_fast(self) -> impl Stream<Item = Box<WsPrivateMessage<Vec<ExecutionFastData>>>> {
+    pub fn executions_fast(
+        self,
+    ) -> impl Stream<Item = Box<WsPrivateMessage<Vec<ExecutionFastData>>>> {
         futures::StreamExt::filter_map(self, |msg| async {
             match msg {
                 WsMessage::ExecutionFast(e) => Some(e),
@@ -191,7 +193,7 @@ impl WsStream {
                 WsMessage::Kline(k) => k
                     .topic
                     .split('.')
-                    .last()
+                    .next_back()
                     .map(|s| s == symbol)
                     .unwrap_or(false),
                 WsMessage::Liquidation(l) => l.data.symbol == symbol,
