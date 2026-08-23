@@ -116,6 +116,60 @@ pub struct Orderbook {
     /// Sequence number (for linear/inverse).
     #[serde(rename = "seq", default)]
     pub seq: Option<u64>,
+    /// Matching engine timestamp (ms).
+    #[serde(rename = "cts", default)]
+    pub cts: Option<u64>,
+}
+
+/// RPI orderbook entry (price, non-RPI size, RPI size).
+#[derive(Debug, Clone, Serialize)]
+pub struct RpiOrderbookEntry {
+    /// Price level.
+    pub price: String,
+    /// Non-RPI size at this price.
+    pub size: String,
+    /// RPI size at this price.
+    pub rpi_size: String,
+}
+
+impl<'de> Deserialize<'de> for RpiOrderbookEntry {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let arr: Vec<String> = Vec::deserialize(deserializer)?;
+        Ok(RpiOrderbookEntry {
+            price: arr.first().cloned().unwrap_or_default(),
+            size: arr.get(1).cloned().unwrap_or_default(),
+            rpi_size: arr.get(2).cloned().unwrap_or_default(),
+        })
+    }
+}
+
+/// RPI orderbook data.
+#[derive(Debug, Clone, Deserialize)]
+pub struct RpiOrderbook {
+    /// Trading symbol.
+    #[serde(rename = "s")]
+    pub symbol: String,
+    /// Bid orders (buy side).
+    #[serde(rename = "b")]
+    pub bids: Vec<RpiOrderbookEntry>,
+    /// Ask orders (sell side).
+    #[serde(rename = "a")]
+    pub asks: Vec<RpiOrderbookEntry>,
+    /// Timestamp (milliseconds).
+    #[serde(rename = "ts")]
+    pub timestamp: u64,
+    /// Update ID.
+    #[serde(rename = "u")]
+    pub update_id: u64,
+    /// Cross sequence number.
+    #[serde(rename = "seq", default)]
+    pub seq: Option<u64>,
+    /// Matching engine timestamp (ms).
+    #[serde(rename = "cts", default)]
+    pub cts: Option<u64>,
 }
 
 /// Ticker information (varies by category).

@@ -149,6 +149,26 @@ impl MarketService {
         self.http.get("/v5/market/orderbook", Some(params)).await
     }
 
+    /// Get full depth orderbook data (up to 10000 levels per side).
+    pub async fn get_full_orderbook(
+        &self,
+        params: &GetFullOrderbookParams,
+    ) -> Result<Orderbook, BybitError> {
+        self.http
+            .get("/v5/market/full_orderbook", Some(params))
+            .await
+    }
+
+    /// Get orderbook data with RPI (Retail Price Improvement) information.
+    pub async fn get_rpi_orderbook(
+        &self,
+        params: &GetRpiOrderbookParams,
+    ) -> Result<RpiOrderbook, BybitError> {
+        self.http
+            .get("/v5/market/rpi_orderbook", Some(params))
+            .await
+    }
+
     /// Get tickers for one or all symbols.
     ///
     /// # Example
@@ -505,6 +525,49 @@ impl GetOrderbookParams {
     pub fn limit(mut self, limit: u32) -> Self {
         self.limit = Some(limit);
         self
+    }
+}
+
+/// Parameters for getting the full depth orderbook.
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GetFullOrderbookParams {
+    /// Product category (spot, linear, inverse).
+    pub category: Category,
+    /// Trading symbol.
+    pub symbol: String,
+}
+
+impl GetFullOrderbookParams {
+    /// Create new parameters.
+    pub fn new(category: Category, symbol: impl Into<String>) -> Self {
+        Self {
+            category,
+            symbol: symbol.into(),
+        }
+    }
+}
+
+/// Parameters for getting the RPI orderbook.
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GetRpiOrderbookParams {
+    /// Product category (spot, linear, inverse).
+    pub category: Category,
+    /// Trading symbol.
+    pub symbol: String,
+    /// Depth limit (1 to 50).
+    pub limit: u32,
+}
+
+impl GetRpiOrderbookParams {
+    /// Create new parameters.
+    pub fn new(category: Category, symbol: impl Into<String>, limit: u32) -> Self {
+        Self {
+            category,
+            symbol: symbol.into(),
+            limit,
+        }
     }
 }
 
