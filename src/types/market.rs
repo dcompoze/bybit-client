@@ -187,6 +187,12 @@ pub struct Ticker {
     /// Predicted delivery price.
     #[serde(default)]
     pub predicted_delivery_price: Option<String>,
+    /// Long-side open interest.
+    #[serde(default)]
+    pub open_interest_long: Option<String>,
+    /// Short-side open interest.
+    #[serde(default)]
+    pub open_interest_short: Option<String>,
 }
 
 /// Ticker list result.
@@ -249,6 +255,18 @@ pub struct InstrumentInfo {
     /// Copy trading support.
     #[serde(default)]
     pub copy_trading: Option<String>,
+    /// Margin trading support (spot).
+    #[serde(default)]
+    pub margin_trading: Option<String>,
+    /// Symbol type (e.g. `commodity` for commodity perpetuals).
+    #[serde(default)]
+    pub symbol_type: Option<String>,
+    /// Symbol ID.
+    #[serde(default)]
+    pub symbol_id: Option<String>,
+    /// Multiplier for xstocks trading pairs.
+    #[serde(default)]
+    pub xstock_multiplier: Option<String>,
 }
 
 /// Leverage filter for derivatives.
@@ -516,6 +534,239 @@ pub struct LongShortRatio {
 pub struct LongShortRatioResult {
     /// List of ratios.
     pub list: Vec<LongShortRatio>,
+}
+
+/// Order price limit for a symbol.
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PriceLimitResult {
+    /// Trading symbol.
+    pub symbol: String,
+    /// Highest allowed buy price.
+    pub buy_lmt: String,
+    /// Lowest allowed sell price.
+    pub sell_lmt: String,
+    /// Timestamp (ms).
+    pub ts: String,
+}
+
+/// Component of an index price.
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct IndexPriceComponent {
+    /// Exchange name.
+    pub exchange: String,
+    /// Spot pair on the exchange.
+    pub spot_pair: String,
+    /// Equivalent price.
+    pub equivalent_price: String,
+    /// Multiplier used for the component price.
+    pub multiplier: String,
+    /// Actual price.
+    pub price: String,
+    /// Weight in the index calculation.
+    pub weight: String,
+}
+
+/// Index price components result.
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct IndexPriceComponentsResult {
+    /// Index name.
+    pub index_name: String,
+    /// Last index price.
+    pub last_price: String,
+    /// Last update time (ms).
+    pub update_time: String,
+    /// Components contributing to the index price.
+    pub components: Vec<IndexPriceComponent>,
+}
+
+/// Fee rate level within a fee group.
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct FeeGroupLevel {
+    /// Level name.
+    pub level: String,
+    /// Taker fee rate.
+    pub taker_fee_rate: String,
+    /// Maker fee rate.
+    pub maker_fee_rate: String,
+    /// Maker rebate rate.
+    #[serde(default)]
+    pub maker_rebate: Option<String>,
+}
+
+/// Fee rates for a fee group.
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct FeeGroupRates {
+    /// Pro-level fee structures.
+    #[serde(default)]
+    pub pro: Vec<FeeGroupLevel>,
+    /// Market maker-level fee structures.
+    #[serde(default)]
+    pub market_maker: Vec<FeeGroupLevel>,
+}
+
+/// Fee group entry.
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct FeeGroupItem {
+    /// Fee group name.
+    pub group_name: String,
+    /// Group weighting factor.
+    #[serde(default)]
+    pub weighting_factor: Option<f64>,
+    /// Number of symbols in the group.
+    #[serde(default)]
+    pub symbols_numbers: Option<i64>,
+    /// Symbol names.
+    #[serde(default)]
+    pub symbols: Vec<String>,
+    /// Fee rate details.
+    pub fee_rates: FeeGroupRates,
+    /// Last update time (ms).
+    #[serde(default)]
+    pub update_time: Option<String>,
+}
+
+/// Fee group info result.
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct FeeGroupInfoResult {
+    /// List of fee groups.
+    pub list: Vec<FeeGroupItem>,
+}
+
+/// ADL alert entry.
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AdlAlertItem {
+    /// Insurance pool coin.
+    pub coin: String,
+    /// Trading symbol.
+    pub symbol: String,
+    /// Insurance fund balance.
+    pub balance: String,
+    /// Maximum balance in the last 8 hours.
+    #[serde(default)]
+    pub max_balance: Option<String>,
+    /// PnL ratio threshold for triggering ADL.
+    #[serde(default)]
+    pub insurance_pnl_ratio: Option<String>,
+    /// PnL drawdown ratio in the last 8 hours.
+    #[serde(default)]
+    pub pnl_ratio: Option<String>,
+    /// Trigger threshold for PnL drawdown ADL.
+    #[serde(default)]
+    pub adl_trigger_threshold: Option<String>,
+    /// Stop ratio threshold for PnL drawdown ADL.
+    #[serde(default)]
+    pub adl_stop_ratio: Option<String>,
+}
+
+/// ADL alert result.
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AdlAlertResult {
+    /// Last update time (ms).
+    pub update_time: String,
+    /// List of ADL alerts.
+    pub list: Vec<AdlAlertItem>,
+}
+
+/// Announcement type descriptor.
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AnnouncementType {
+    /// Type title.
+    pub title: String,
+    /// Type key.
+    pub key: String,
+}
+
+/// Announcement entry.
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Announcement {
+    /// Title.
+    pub title: String,
+    /// Description.
+    #[serde(default)]
+    pub description: Option<String>,
+    /// Announcement type.
+    #[serde(rename = "type", default)]
+    pub announcement_type: Option<AnnouncementType>,
+    /// Tags.
+    #[serde(default)]
+    pub tags: Vec<String>,
+    /// URL.
+    #[serde(default)]
+    pub url: Option<String>,
+    /// Publication timestamp (ms).
+    #[serde(default)]
+    pub date_timestamp: Option<u64>,
+    /// Start timestamp (ms).
+    #[serde(default)]
+    pub start_date_timestamp: Option<u64>,
+    /// End timestamp (ms).
+    #[serde(default)]
+    pub end_date_timestamp: Option<u64>,
+}
+
+/// Announcement list result.
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AnnouncementResult {
+    /// Total number of announcements.
+    pub total: i64,
+    /// List of announcements.
+    pub list: Vec<Announcement>,
+}
+
+/// System status entry.
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SystemStatusItem {
+    /// Maintenance ID.
+    pub id: String,
+    /// Title.
+    pub title: String,
+    /// State.
+    pub state: String,
+    /// Begin time (ms).
+    #[serde(default)]
+    pub begin: Option<String>,
+    /// End time (ms).
+    #[serde(default)]
+    pub end: Option<String>,
+    /// Announcement link.
+    #[serde(default)]
+    pub href: Option<String>,
+    /// Affected service types.
+    #[serde(default)]
+    pub service_types: Vec<i32>,
+    /// Affected products.
+    #[serde(default)]
+    pub product: Vec<i32>,
+    /// Affected UID suffixes.
+    #[serde(default)]
+    pub uid_suffix: Vec<i32>,
+    /// Maintenance type.
+    #[serde(default)]
+    pub maintain_type: Option<String>,
+    /// Environment.
+    #[serde(default)]
+    pub env: Option<String>,
+}
+
+/// System status result.
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SystemStatusResult {
+    /// List of maintenance entries.
+    pub list: Vec<SystemStatusItem>,
 }
 
 #[cfg(test)]

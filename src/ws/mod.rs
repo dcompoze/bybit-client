@@ -99,11 +99,15 @@
 //! - `publicTrade.{symbol}` - Public trades.
 //! - `tickers.{symbol}` - Ticker updates.
 //! - `kline.{interval}.{symbol}` - Kline or candlestick data.
-//! - `liquidation.{symbol}` - Liquidation events.
+//! - `allLiquidation.{symbol}` - All liquidation events.
+//! - `liquidation.{symbol}` - Liquidation events (deprecated, prefer `allLiquidation`).
+//! - `insurance.{coin}` - Insurance pool updates.
+//! - `priceLimit.{symbol}` - Price limit updates.
 //!
 //! ## Private Topics
 //! - `position` - Position updates.
 //! - `execution` - Execution updates.
+//! - `execution.fast` - Low-latency execution updates.
 //! - `order` - Order updates.
 //! - `wallet` - Wallet balance updates.
 //! - `greeks` - Options greeks updates.

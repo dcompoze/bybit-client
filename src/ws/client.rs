@@ -24,10 +24,13 @@ use crate::ws::types::*;
 /// Default ping interval in seconds.
 const DEFAULT_PING_INTERVAL_SECS: u64 = 20;
 
-/// Default reconnect delay in seconds.
-const DEFAULT_RECONNECT_DELAY_SECS: u64 = 5;
+/// Initial reconnect delay in seconds.
+const INITIAL_RECONNECT_DELAY_SECS: u64 = 1;
 
-/// Maximum reconnect attempts before giving up.
+/// Maximum reconnect delay in seconds.
+const MAX_RECONNECT_DELAY_SECS: u64 = 30;
+
+/// Maximum consecutive reconnect attempts before giving up.
 const MAX_RECONNECT_ATTEMPTS: u32 = 10;
 
 /// WebSocket client for public and private streams.
@@ -122,6 +125,15 @@ impl WsClient {
         config: ClientConfig,
         channel: WsChannel,
     ) -> Result<(Self, mpsc::UnboundedReceiver<WsMessage>), BybitError> {
+        Self::connect_with_options(config, channel, WsConnectOptions::default()).await
+    }
+
+    /// Create a new WebSocket client with custom configuration and connection options.
+    pub async fn connect_with_options(
+        config: ClientConfig,
+        channel: WsChannel,
+        options: WsConnectOptions,
+    ) -> Result<(Self, mpsc::UnboundedReceiver<WsMessage>), BybitError> {
         if channel.requires_auth() && !config.has_credentials() {
             return Err(BybitError::Config(
                 "Authentication required for private WebSocket channels".to_string(),
@@ -147,6 +159,7 @@ impl WsClient {
         tokio::spawn(Self::run_ws_loop(
             config,
             channel,
+            options,
             subscribed_topics,
             message_tx,
             command_rx,
@@ -230,19 +243,26 @@ impl WsClient {
     }
 
     /// Build the WebSocket URL.
-    fn build_ws_url(config: &ClientConfig, channel: WsChannel) -> String {
+    fn build_ws_url(config: &ClientConfig, channel: WsChannel, options: &WsConnectOptions) -> String {
         let base = match config.environment {
             Environment::Production => "wss://stream.bybit.com",
             Environment::Testnet => "wss://stream-testnet.bybit.com",
             Environment::Demo => "wss://stream-demo.bybit.com",
         };
-        format!("{}{}", base, channel.path())
+        let mut url = format!("{}{}", base, channel.path());
+        if let Some(max_alive_time) = &options.max_alive_time {
+            url.push_str("?max_alive_time=");
+            url.push_str(max_alive_time);
+        }
+        url
     }
 
     /// Main WebSocket loop.
+    #[allow(clippy::too_many_arguments)]
     async fn run_ws_loop(
         config: ClientConfig,
         channel: WsChannel,
+        options: WsConnectOptions,
         subscribed_topics: Arc<RwLock<HashSet<String>>>,
         message_tx: mpsc::UnboundedSender<WsMessage>,
         mut command_rx: mpsc::UnboundedReceiver<WsCommand>,
@@ -252,7 +272,7 @@ impl WsClient {
         let mut reconnect_attempts = 0;
 
         while running.load(Ordering::SeqCst) {
-            let url = Self::build_ws_url(&config, channel);
+            let url = Self::build_ws_url(&config, channel, &options);
             info!("Connecting to WebSocket: {}", url);
 
             match Self::connect_and_run(
@@ -273,6 +293,10 @@ impl WsClient {
                 }
                 Err(e) => {
                     error!("WebSocket error: {}", e);
+                    // Reset the backoff if the connection had been established.
+                    if connected.load(Ordering::SeqCst) {
+                        reconnect_attempts = 0;
+                    }
                     connected.store(false, Ordering::SeqCst);
 
                     if !running.load(Ordering::SeqCst) {
@@ -288,7 +312,10 @@ impl WsClient {
                         break;
                     }
 
-                    let delay = Duration::from_secs(DEFAULT_RECONNECT_DELAY_SECS);
+                    // Exponential backoff starting at 1 second, capped at 30 seconds.
+                    let secs = (INITIAL_RECONNECT_DELAY_SECS << (reconnect_attempts - 1).min(5))
+                        .min(MAX_RECONNECT_DELAY_SECS);
+                    let delay = Duration::from_secs(secs);
                     warn!(
                         "Reconnecting in {} seconds (attempt {}/{})",
                         delay.as_secs(),
@@ -502,9 +529,21 @@ impl WsClient {
                 if let Ok(msg) = serde_json::from_value(value) {
                     return Some(WsMessage::Kline(Box::new(msg)));
                 }
+            } else if topic.starts_with("allLiquidation.") {
+                if let Ok(msg) = serde_json::from_value(value) {
+                    return Some(WsMessage::AllLiquidation(Box::new(msg)));
+                }
             } else if topic.starts_with("liquidation.") {
                 if let Ok(msg) = serde_json::from_value(value) {
                     return Some(WsMessage::Liquidation(Box::new(msg)));
+                }
+            } else if topic.starts_with("insurance") {
+                if let Ok(msg) = serde_json::from_value(value) {
+                    return Some(WsMessage::Insurance(Box::new(msg)));
+                }
+            } else if topic.starts_with("priceLimit.") {
+                if let Ok(msg) = serde_json::from_value(value) {
+                    return Some(WsMessage::PriceLimit(Box::new(msg)));
                 }
             }
             else if topic == "position" || topic.starts_with("position.") {
@@ -551,12 +590,66 @@ mod tests {
     #[test]
     fn test_build_ws_url() {
         let config = ClientConfig::public_only();
-        let url = WsClient::build_ws_url(&config, WsChannel::PublicLinear);
+        let options = WsConnectOptions::default();
+        let url = WsClient::build_ws_url(&config, WsChannel::PublicLinear, &options);
         assert_eq!(url, "wss://stream.bybit.com/v5/public/linear");
 
         let testnet = config.testnet();
-        let url = WsClient::build_ws_url(&testnet, WsChannel::PublicLinear);
+        let url = WsClient::build_ws_url(&testnet, WsChannel::PublicLinear, &options);
         assert_eq!(url, "wss://stream-testnet.bybit.com/v5/public/linear");
+    }
+
+    #[test]
+    fn test_build_ws_url_max_alive_time() {
+        let config = ClientConfig::public_only();
+        let options = WsConnectOptions::new().max_alive_time("60s");
+        let url = WsClient::build_ws_url(&config, WsChannel::PublicLinear, &options);
+        assert_eq!(
+            url,
+            "wss://stream.bybit.com/v5/public/linear?max_alive_time=60s"
+        );
+    }
+
+    #[test]
+    fn test_parse_all_liquidation() {
+        let text = r#"{"topic":"allLiquidation.BTCUSDT","type":"snapshot","ts":1739502302929,"data":[{"T":1739502302929,"s":"BTCUSDT","S":"Sell","v":"0.003","p":"95300.20"}]}"#;
+        let msg = WsClient::parse_message(text);
+        match msg {
+            Some(WsMessage::AllLiquidation(m)) => {
+                assert_eq!(m.data[0].symbol, "BTCUSDT");
+                assert_eq!(m.data[0].side, "Sell");
+                assert_eq!(m.data[0].size, "0.003");
+                assert_eq!(m.data[0].price, "95300.20");
+            }
+            other => panic!("Expected AllLiquidation, got {:?}", other),
+        }
+    }
+
+    #[test]
+    fn test_parse_insurance() {
+        let text = r#"{"topic":"insurance.USDT","type":"snapshot","ts":1739502302929,"data":[{"coin":"USDT","symbols":"BTCUSDT,ETHUSDT","balance":"1234567.89","updateTime":"1739502300000"}]}"#;
+        let msg = WsClient::parse_message(text);
+        match msg {
+            Some(WsMessage::Insurance(m)) => {
+                assert_eq!(m.data[0].coin, "USDT");
+                assert_eq!(m.data[0].balance, "1234567.89");
+            }
+            other => panic!("Expected Insurance, got {:?}", other),
+        }
+    }
+
+    #[test]
+    fn test_parse_price_limit() {
+        let text = r#"{"topic":"priceLimit.BTCUSDT","type":"snapshot","ts":1739502302929,"data":{"symbol":"BTCUSDT","buyLmt":"96000.00","sellLmt":"94000.00"}}"#;
+        let msg = WsClient::parse_message(text);
+        match msg {
+            Some(WsMessage::PriceLimit(m)) => {
+                assert_eq!(m.data.symbol, "BTCUSDT");
+                assert_eq!(m.data.buy_lmt, "96000.00");
+                assert_eq!(m.data.sell_lmt, "94000.00");
+            }
+            other => panic!("Expected PriceLimit, got {:?}", other),
+        }
     }
 
     #[test]

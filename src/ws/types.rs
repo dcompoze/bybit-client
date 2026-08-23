@@ -275,6 +275,7 @@ pub struct KlineData {
 }
 
 /// Liquidation data.
+/// The `liquidation` topic is deprecated, prefer `allLiquidation`.
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct LiquidationData {
@@ -288,6 +289,57 @@ pub struct LiquidationData {
     pub size: String,
     /// Update time (milliseconds).
     pub updated_time: u64,
+}
+
+/// All-liquidation data from the `allLiquidation` topic.
+/// The payload uses abbreviated field names.
+#[derive(Debug, Clone, Deserialize)]
+pub struct AllLiquidationData {
+    /// Update time (milliseconds).
+    #[serde(rename = "T")]
+    pub updated_time: u64,
+    /// Symbol.
+    #[serde(rename = "s")]
+    pub symbol: String,
+    /// Position side of the liquidated trader (Buy/Sell).
+    #[serde(rename = "S")]
+    pub side: String,
+    /// Liquidation size.
+    #[serde(rename = "v")]
+    pub size: String,
+    /// Bankruptcy price.
+    #[serde(rename = "p")]
+    pub price: String,
+}
+
+/// Insurance pool data from the `insurance` topic.
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct InsuranceData {
+    /// Insurance pool coin.
+    pub coin: String,
+    /// Symbols covered by the pool (comma separated).
+    pub symbols: String,
+    /// Insurance pool balance.
+    pub balance: String,
+    /// Update time (milliseconds).
+    #[serde(default)]
+    pub update_time: Option<String>,
+}
+
+/// Price limit data from the `priceLimit` topic.
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PriceLimitData {
+    /// Symbol.
+    pub symbol: String,
+    /// Highest buy price limit.
+    pub buy_lmt: String,
+    /// Lowest sell price limit.
+    pub sell_lmt: String,
+    /// Timestamp (milliseconds).
+    #[serde(default)]
+    pub ts: Option<u64>,
 }
 
 
@@ -402,6 +454,12 @@ pub struct PositionData {
     /// Sequence number.
     #[serde(default)]
     pub seq: Option<i64>,
+    /// Break-even price (linear and inverse).
+    #[serde(default)]
+    pub break_even_price: Option<String>,
+    /// Position open time (ms).
+    #[serde(default)]
+    pub open_time: Option<String>,
 }
 
 /// Order update data from private WebSocket stream.
@@ -497,11 +555,14 @@ pub struct OrderData {
     #[serde(default)]
     pub smp_type: Option<String>,
     /// SMP group.
-    #[serde(default)]
-    pub smp_group: Option<i32>,
+    #[serde(default, deserialize_with = "crate::types::common::string_or_int")]
+    pub smp_group: Option<String>,
     /// SMP order ID.
     #[serde(default)]
     pub smp_order_id: Option<String>,
+    /// Parent order link ID for TP/SL orders.
+    #[serde(default)]
+    pub parent_order_link_id: Option<String>,
     /// Created time.
     #[serde(default)]
     pub created_time: Option<String>,
@@ -750,8 +811,14 @@ pub enum WsMessage {
     Ticker(Box<WsStreamMessage<TickerData>>),
     /// Kline update.
     Kline(Box<WsStreamMessage<Vec<KlineData>>>),
-    /// Liquidation update.
+    /// Liquidation update (deprecated topic, prefer `AllLiquidation`).
     Liquidation(Box<WsStreamMessage<LiquidationData>>),
+    /// All-liquidation update.
+    AllLiquidation(Box<WsStreamMessage<Vec<AllLiquidationData>>>),
+    /// Insurance pool update.
+    Insurance(Box<WsStreamMessage<Vec<InsuranceData>>>),
+    /// Price limit update.
+    PriceLimit(Box<WsStreamMessage<PriceLimitData>>),
     /// Position update (private stream).
     Position(Box<WsPrivateMessage<Vec<PositionData>>>),
     /// Order update (private stream).
@@ -812,6 +879,27 @@ impl WsChannel {
     /// Check if this channel requires authentication.
     pub fn requires_auth(&self) -> bool {
         matches!(self, WsChannel::Private | WsChannel::Trade)
+    }
+}
+
+/// Options for establishing a WebSocket connection.
+#[derive(Debug, Clone, Default)]
+pub struct WsConnectOptions {
+    /// Maximum alive time for the connection (e.g. "60s", "10m").
+    /// Sent as the `max_alive_time` query parameter.
+    pub max_alive_time: Option<String>,
+}
+
+impl WsConnectOptions {
+    /// Create new options.
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Set the maximum alive time.
+    pub fn max_alive_time(mut self, value: impl Into<String>) -> Self {
+        self.max_alive_time = Some(value.into());
+        self
     }
 }
 

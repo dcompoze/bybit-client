@@ -27,6 +27,8 @@ pub mod rest_urls {
     pub const UAE: &str = "https://api.bybit.ae";
     /// EU
     pub const EU: &str = "https://api.bybit.eu";
+    /// Japan
+    pub const JP: &str = "https://api.manepa.jp";
 }
 
 /// WebSocket URLs.
@@ -88,6 +90,8 @@ pub enum ApiRegion {
     UAE,
     /// EU
     EU,
+    /// Japan
+    JP,
 }
 
 impl ApiRegion {
@@ -103,6 +107,7 @@ impl ApiRegion {
             ApiRegion::GE => rest_urls::GE,
             ApiRegion::UAE => rest_urls::UAE,
             ApiRegion::EU => rest_urls::EU,
+            ApiRegion::JP => rest_urls::JP,
         }
     }
 }
@@ -316,6 +321,9 @@ mod tests {
     fn test_regional_config() {
         let config = ClientConfig::public_only().region(ApiRegion::HK);
         assert_eq!(config.get_rest_url(), rest_urls::HK);
+
+        let config = ClientConfig::public_only().region(ApiRegion::JP);
+        assert_eq!(config.get_rest_url(), "https://api.manepa.jp");
     }
 
     #[test]

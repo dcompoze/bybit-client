@@ -708,6 +708,9 @@ pub struct GetExecutionListParams {
     /// Execution type filter.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub exec_type: Option<String>,
+    /// Settle coin filter (linear, inverse, option).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub settle_coin: Option<String>,
     /// Limit (max 100).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub limit: Option<u32>,
@@ -728,6 +731,7 @@ impl GetExecutionListParams {
             start_time: None,
             end_time: None,
             exec_type: None,
+            settle_coin: None,
             limit: None,
             cursor: None,
         }
@@ -742,6 +746,12 @@ impl GetExecutionListParams {
     /// Set order ID filter.
     pub fn order_id(mut self, id: impl Into<String>) -> Self {
         self.order_id = Some(id.into());
+        self
+    }
+
+    /// Set settle coin filter.
+    pub fn settle_coin(mut self, coin: impl Into<String>) -> Self {
+        self.settle_coin = Some(coin.into());
         self
     }
 
@@ -1219,11 +1229,14 @@ pub struct OrderInfo {
     #[serde(default)]
     pub smp_type: Option<String>,
     /// SMP group.
-    #[serde(default)]
-    pub smp_group: Option<i32>,
+    #[serde(default, deserialize_with = "crate::types::common::string_or_int")]
+    pub smp_group: Option<String>,
     /// SMP order ID.
     #[serde(default)]
     pub smp_order_id: Option<String>,
+    /// Parent order link ID for TP/SL orders.
+    #[serde(default)]
+    pub parent_order_link_id: Option<String>,
     /// Created time (ms).
     pub created_time: String,
     /// Updated time (ms).
@@ -1402,6 +1415,59 @@ pub struct CancelAllResult {
     /// Success status (for some responses).
     #[serde(default)]
     pub success: Option<String>,
+}
+
+/// Result of an order pre-check.
+///
+/// Margin rates are expressed in basis points (E4).
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PreCheckOrderResult {
+    /// Order ID.
+    #[serde(default)]
+    pub order_id: Option<String>,
+    /// User-defined order ID.
+    #[serde(default)]
+    pub order_link_id: Option<String>,
+    /// Initial margin rate before the order (E4).
+    #[serde(default)]
+    pub pre_imr_e4: Option<i64>,
+    /// Maintenance margin rate before the order (E4).
+    #[serde(default)]
+    pub pre_mmr_e4: Option<i64>,
+    /// Initial margin rate after the order (E4).
+    #[serde(default)]
+    pub post_imr_e4: Option<i64>,
+    /// Maintenance margin rate after the order (E4).
+    #[serde(default)]
+    pub post_mmr_e4: Option<i64>,
+}
+
+/// Parameters for setting the disconnect cancel all (DCP) time window.
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SetDcpParams {
+    /// Time window in seconds (1-300).
+    pub time_window: u32,
+    /// Product scope (OPTION, SPOT, DERIVATIVES).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub product: Option<String>,
+}
+
+impl SetDcpParams {
+    /// Create new parameters.
+    pub fn new(time_window: u32) -> Self {
+        Self {
+            time_window,
+            product: None,
+        }
+    }
+
+    /// Set product scope.
+    pub fn product(mut self, product: impl Into<String>) -> Self {
+        self.product = Some(product.into());
+        self
+    }
 }
 
 #[cfg(test)]

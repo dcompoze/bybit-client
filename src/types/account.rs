@@ -668,6 +668,367 @@ pub struct TransactionLog {
     /// Order link ID.
     #[serde(default)]
     pub order_link_id: Option<String>,
+    /// Display type for UI presentation.
+    #[serde(default)]
+    pub display_type: Option<String>,
+}
+
+/// Result of upgrading to a unified trading account.
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct UpgradeToUtaResult {
+    /// Upgrade status.
+    pub unified_update_status: String,
+    /// Upgrade messages.
+    #[serde(default)]
+    pub unified_update_msg: Option<UnifiedUpdateMsg>,
+}
+
+/// Upgrade messages container.
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct UnifiedUpdateMsg {
+    /// Error messages, if any.
+    #[serde(default)]
+    pub msg: Option<Vec<String>>,
+}
+
+/// Parameters for modifying market maker protection.
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MmpModifyParams {
+    /// Base coin.
+    pub base_coin: String,
+    /// Time window in milliseconds.
+    pub window: String,
+    /// Frozen period in milliseconds.
+    pub frozen_period: String,
+    /// Trade quantity limit.
+    pub qty_limit: String,
+    /// Delta limit.
+    pub delta_limit: String,
+    /// Vega limit (options).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub vega_limit: Option<String>,
+}
+
+impl MmpModifyParams {
+    /// Create new parameters.
+    pub fn new(
+        base_coin: impl Into<String>,
+        window: impl Into<String>,
+        frozen_period: impl Into<String>,
+        qty_limit: impl Into<String>,
+        delta_limit: impl Into<String>,
+    ) -> Self {
+        Self {
+            base_coin: base_coin.into(),
+            window: window.into(),
+            frozen_period: frozen_period.into(),
+            qty_limit: qty_limit.into(),
+            delta_limit: delta_limit.into(),
+            vega_limit: None,
+        }
+    }
+
+    /// Set vega limit.
+    pub fn vega_limit(mut self, limit: impl Into<String>) -> Self {
+        self.vega_limit = Some(limit.into());
+        self
+    }
+}
+
+/// Parameters carrying only a base coin.
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct BaseCoinParams {
+    /// Base coin.
+    pub base_coin: String,
+}
+
+impl BaseCoinParams {
+    /// Create new parameters.
+    pub fn new(base_coin: impl Into<String>) -> Self {
+        Self {
+            base_coin: base_coin.into(),
+        }
+    }
+}
+
+/// Market maker protection state entry.
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MmpState {
+    /// Base coin.
+    pub base_coin: String,
+    /// Whether MMP is enabled.
+    pub mmp_enabled: bool,
+    /// Time window in milliseconds.
+    pub window: String,
+    /// Frozen period in milliseconds.
+    pub frozen_period: String,
+    /// Trade quantity limit.
+    pub qty_limit: String,
+    /// Delta limit.
+    pub delta_limit: String,
+    /// Vega limit (options).
+    #[serde(default)]
+    pub vega_limit: Option<String>,
+    /// Frozen-until timestamp (ms).
+    #[serde(default)]
+    pub mmp_frozen_until: Option<String>,
+    /// Whether the account is currently frozen.
+    pub mmp_frozen: bool,
+}
+
+/// Market maker protection state result.
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MmpStateResult {
+    /// List of MMP states.
+    pub result: Vec<MmpState>,
+}
+
+/// Parameters for setting spot hedging mode.
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SetHedgingModeParams {
+    /// Hedging mode: ON or OFF.
+    pub set_hedging_mode: String,
+}
+
+impl SetHedgingModeParams {
+    /// Enable spot hedging.
+    pub fn on() -> Self {
+        Self {
+            set_hedging_mode: "ON".to_string(),
+        }
+    }
+
+    /// Disable spot hedging.
+    pub fn off() -> Self {
+        Self {
+            set_hedging_mode: "OFF".to_string(),
+        }
+    }
+}
+
+/// Disconnect-cancel-all configuration entry.
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DcpInfo {
+    /// Product scope (SPOT, DERIVATIVES, OPTIONS).
+    pub product: String,
+    /// DCP status.
+    pub dcp_status: String,
+    /// Time window in seconds.
+    pub time_window: String,
+}
+
+/// Disconnect-cancel-all info result.
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DcpInfoResult {
+    /// List of DCP configurations.
+    pub dcp_infos: Vec<DcpInfo>,
+}
+
+/// SMP group result.
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SmpGroupResult {
+    /// SMP group ID.
+    pub smp_group: String,
+}
+
+/// User setting configuration.
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct UserSettingConfig {
+    /// Limit price action enabled for spot.
+    #[serde(default)]
+    pub lpa_spot: bool,
+    /// Limit price action enabled for perpetuals.
+    #[serde(default)]
+    pub lpa_perp: bool,
+    /// Spot MNT fee deduction enabled.
+    #[serde(default)]
+    pub smsef: Option<bool>,
+    /// Futures MNT fee deduction enabled.
+    #[serde(default)]
+    pub fmsef: Option<bool>,
+    /// Delta neutral mode enabled.
+    #[serde(default)]
+    pub delta_enable: Option<bool>,
+    /// SMP type.
+    #[serde(default)]
+    pub smp_type: Option<String>,
+}
+
+/// Parameters for setting limit price action.
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SetLimitPxActionParams {
+    /// Product category.
+    pub category: Category,
+    /// Whether the system may adjust the limit price to the boundary.
+    pub modify_enable: bool,
+}
+
+impl SetLimitPxActionParams {
+    /// Create new parameters.
+    pub fn new(category: Category, modify_enable: bool) -> Self {
+        Self {
+            category,
+            modify_enable,
+        }
+    }
+}
+
+/// Parameters for setting delta neutral mode.
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SetDeltaModeParams {
+    /// Delta neutral mode: "1" to enable, "0" to disable.
+    pub delta_enable: String,
+}
+
+impl SetDeltaModeParams {
+    /// Enable delta neutral mode.
+    pub fn enable() -> Self {
+        Self {
+            delta_enable: "1".to_string(),
+        }
+    }
+
+    /// Disable delta neutral mode.
+    pub fn disable() -> Self {
+        Self {
+            delta_enable: "0".to_string(),
+        }
+    }
+}
+
+/// Coin amount entry for demo trading funds.
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DemoApplyMoneyCoin {
+    /// Coin name.
+    pub coin: String,
+    /// Amount as a string.
+    pub amount_str: String,
+}
+
+/// Parameters for requesting demo trading funds.
+#[derive(Debug, Clone, Default, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DemoApplyMoneyParams {
+    /// Adjust type (0: add, 1: reduce).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub adjust_type: Option<i32>,
+    /// Coins and amounts to apply.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub uta_demo_apply_money: Option<Vec<DemoApplyMoneyCoin>>,
+}
+
+impl DemoApplyMoneyParams {
+    /// Create new parameters.
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Set adjust type (0: add, 1: reduce).
+    pub fn adjust_type(mut self, adjust_type: i32) -> Self {
+        self.adjust_type = Some(adjust_type);
+        self
+    }
+
+    /// Add a coin amount.
+    pub fn coin(mut self, coin: impl Into<String>, amount: impl Into<String>) -> Self {
+        self.uta_demo_apply_money
+            .get_or_insert_with(Vec::new)
+            .push(DemoApplyMoneyCoin {
+                coin: coin.into(),
+                amount_str: amount.into(),
+            });
+        self
+    }
+}
+
+/// Parameters for getting the contract wallet transaction log.
+#[derive(Debug, Clone, Default, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GetContractTransactionLogParams {
+    /// Currency filter.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub currency: Option<String>,
+    /// Base coin filter.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub base_coin: Option<String>,
+    /// Transaction type filter.
+    #[serde(skip_serializing_if = "Option::is_none", rename = "type")]
+    pub transaction_type: Option<String>,
+    /// Start time (ms).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub start_time: Option<u64>,
+    /// End time (ms).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub end_time: Option<u64>,
+    /// Limit.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub limit: Option<u32>,
+    /// Cursor.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub cursor: Option<String>,
+}
+
+impl GetContractTransactionLogParams {
+    /// Create new parameters.
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Set currency filter.
+    pub fn currency(mut self, currency: impl Into<String>) -> Self {
+        self.currency = Some(currency.into());
+        self
+    }
+
+    /// Set base coin filter.
+    pub fn base_coin(mut self, coin: impl Into<String>) -> Self {
+        self.base_coin = Some(coin.into());
+        self
+    }
+
+    /// Set transaction type filter.
+    pub fn transaction_type(mut self, t: impl Into<String>) -> Self {
+        self.transaction_type = Some(t.into());
+        self
+    }
+
+    /// Set start time.
+    pub fn start_time(mut self, start: u64) -> Self {
+        self.start_time = Some(start);
+        self
+    }
+
+    /// Set end time.
+    pub fn end_time(mut self, end: u64) -> Self {
+        self.end_time = Some(end);
+        self
+    }
+
+    /// Set limit.
+    pub fn limit(mut self, limit: u32) -> Self {
+        self.limit = Some(limit);
+        self
+    }
+
+    /// Set cursor.
+    pub fn cursor(mut self, cursor: impl Into<String>) -> Self {
+        self.cursor = Some(cursor.into());
+        self
+    }
 }
 
 /// Transaction log result.

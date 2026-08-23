@@ -181,7 +181,7 @@ impl std::fmt::Display for OrderStatus {
 }
 
 /// Position index for position mode.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[repr(i32)]
 pub enum PositionIdx {
     /// One-way mode (default)
@@ -190,6 +190,31 @@ pub enum PositionIdx {
     HedgeBuy = 1,
     /// Hedge mode - Sell side
     HedgeSell = 2,
+}
+
+impl Serialize for PositionIdx {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        serializer.serialize_i32(*self as i32)
+    }
+}
+
+impl<'de> Deserialize<'de> for PositionIdx {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        match i32::deserialize(deserializer)? {
+            0 => Ok(PositionIdx::OneWay),
+            1 => Ok(PositionIdx::HedgeBuy),
+            2 => Ok(PositionIdx::HedgeSell),
+            other => Err(serde::de::Error::custom(format!(
+                "invalid positionIdx: {other}"
+            ))),
+        }
+    }
 }
 
 impl From<PositionIdx> for i32 {

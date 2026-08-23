@@ -3,7 +3,11 @@
 use crate::config::ClientConfig;
 use crate::error::BybitError;
 use crate::http::HttpClient;
-use crate::rest::{AccountService, MarketService, PositionService, TradeService};
+use crate::rest::{
+    AccountService, AssetService, CryptoLoanService, EarnService, MarketService, PositionService,
+    PreUpgradeService, SpotLeverageTokenService, SpotMarginService, SpreadService, TradeService,
+    UserService,
+};
 
 /// Main client for interacting with the Bybit API.
 ///
@@ -85,7 +89,7 @@ impl BybitClient {
     ///
     /// ```no_run
     /// # use bybit_client::{BybitClient, Category};
-    /// # use bybit_client::api::market::GetTickersParams;
+    /// # use bybit_client::rest::market::GetTickersParams;
     /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
     /// let client = BybitClient::public_only()?;
     /// let params = GetTickersParams::new(Category::Linear).symbol("BTCUSDT");
@@ -166,6 +170,62 @@ impl BybitClient {
     /// ```
     pub fn account(&self) -> AccountService {
         AccountService::new(self.http.clone())
+    }
+
+    /// Get the asset service for transfers, deposits, and withdrawals.
+    ///
+    /// Note: Asset endpoints require authentication.
+    pub fn asset(&self) -> AssetService {
+        AssetService::new(self.http.clone())
+    }
+
+    /// Get the user service for sub-account and API key management.
+    ///
+    /// Note: User endpoints require authentication.
+    pub fn user(&self) -> UserService {
+        UserService::new(self.http.clone())
+    }
+
+    /// Get the spot margin service for UTA spot margin trading.
+    ///
+    /// Note: Spot margin endpoints require authentication.
+    pub fn spot_margin(&self) -> SpotMarginService {
+        SpotMarginService::new(self.http.clone())
+    }
+
+    /// Get the spot leverage token service.
+    ///
+    /// Note: Purchase, redeem, and order record endpoints require authentication.
+    pub fn spot_leverage_token(&self) -> SpotLeverageTokenService {
+        SpotLeverageTokenService::new(self.http.clone())
+    }
+
+    /// Get the crypto loan service for the new flexible and fixed loans.
+    ///
+    /// Note: Most crypto loan endpoints require authentication.
+    pub fn crypto_loan(&self) -> CryptoLoanService {
+        CryptoLoanService::new(self.http.clone())
+    }
+
+    /// Get the spread trading service.
+    ///
+    /// Note: Order and execution endpoints require authentication.
+    pub fn spread(&self) -> SpreadService {
+        SpreadService::new(self.http.clone())
+    }
+
+    /// Get the earn service for savings products.
+    ///
+    /// Note: Earn endpoints require authentication.
+    pub fn earn(&self) -> EarnService {
+        EarnService::new(self.http.clone())
+    }
+
+    /// Get the pre-upgrade service for pre-UTA historical data.
+    ///
+    /// Note: Pre-upgrade endpoints require authentication.
+    pub fn pre_upgrade(&self) -> PreUpgradeService {
+        PreUpgradeService::new(self.http.clone())
     }
 
     /// Make a public GET request.

@@ -2,7 +2,7 @@
 
 use serde::{Deserialize, Serialize};
 
-use crate::types::{Category, OrderType, PositionIdx, TriggerBy};
+use crate::types::{Category, OrderType, PositionIdx, Side, TriggerBy};
 
 
 /// Parameters for getting position info.
@@ -574,6 +574,12 @@ pub struct PositionInfo {
     /// Sequence number.
     #[serde(default)]
     pub seq: Option<i64>,
+    /// Break-even price (linear and inverse).
+    #[serde(default)]
+    pub break_even_price: Option<String>,
+    /// Position open time (ms).
+    #[serde(default)]
+    pub open_time: Option<String>,
 }
 
 /// Position list result.
@@ -717,6 +723,436 @@ pub struct MarginOperationResult {
     /// Updated time.
     #[serde(default)]
     pub updated_time: Option<String>,
+}
+
+/// Parameters for setting TP/SL mode.
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SetTpslModeParams {
+    /// Product category (linear, inverse).
+    pub category: Category,
+    /// Trading symbol.
+    pub symbol: String,
+    /// TP/SL mode (Full, Partial).
+    pub tp_sl_mode: String,
+}
+
+impl SetTpslModeParams {
+    /// Create parameters for full TP/SL mode.
+    pub fn full(category: Category, symbol: impl Into<String>) -> Self {
+        Self {
+            category,
+            symbol: symbol.into(),
+            tp_sl_mode: "Full".to_string(),
+        }
+    }
+
+    /// Create parameters for partial TP/SL mode.
+    pub fn partial(category: Category, symbol: impl Into<String>) -> Self {
+        Self {
+            category,
+            symbol: symbol.into(),
+            tp_sl_mode: "Partial".to_string(),
+        }
+    }
+}
+
+/// Result of setting TP/SL mode.
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SetTpslModeResult {
+    /// TP/SL mode after the change.
+    pub tp_sl_mode: String,
+}
+
+/// Parameters for setting the risk limit.
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SetRiskLimitParams {
+    /// Product category (linear, inverse).
+    pub category: Category,
+    /// Trading symbol.
+    pub symbol: String,
+    /// Risk ID.
+    pub risk_id: i32,
+    /// Position index.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub position_idx: Option<PositionIdx>,
+}
+
+impl SetRiskLimitParams {
+    /// Create new parameters.
+    pub fn new(category: Category, symbol: impl Into<String>, risk_id: i32) -> Self {
+        Self {
+            category,
+            symbol: symbol.into(),
+            risk_id,
+            position_idx: None,
+        }
+    }
+
+    /// Set position index.
+    pub fn position_idx(mut self, idx: PositionIdx) -> Self {
+        self.position_idx = Some(idx);
+        self
+    }
+}
+
+/// Result of setting the risk limit.
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SetRiskLimitResult {
+    /// Product category.
+    pub category: Category,
+    /// Risk ID.
+    pub risk_id: i32,
+    /// Risk limit value.
+    pub risk_limit_value: String,
+}
+
+/// Single position entry for a move-positions request.
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MovePositionItem {
+    /// Product category (linear, spot, option, inverse).
+    pub category: Category,
+    /// Trading symbol.
+    pub symbol: String,
+    /// Trade price.
+    pub price: String,
+    /// Side from the taker (toUid) perspective.
+    pub side: Side,
+    /// Quantity.
+    pub qty: String,
+}
+
+impl MovePositionItem {
+    /// Create a new move position item.
+    pub fn new(
+        category: Category,
+        symbol: impl Into<String>,
+        price: impl Into<String>,
+        side: Side,
+        qty: impl Into<String>,
+    ) -> Self {
+        Self {
+            category,
+            symbol: symbol.into(),
+            price: price.into(),
+            side,
+            qty: qty.into(),
+        }
+    }
+}
+
+/// Parameters for moving positions between UIDs.
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MovePositionsParams {
+    /// Source UID.
+    pub from_uid: String,
+    /// Destination UID.
+    pub to_uid: String,
+    /// Positions to move (max 25).
+    pub list: Vec<MovePositionItem>,
+}
+
+impl MovePositionsParams {
+    /// Create new parameters.
+    pub fn new(
+        from_uid: impl Into<String>,
+        to_uid: impl Into<String>,
+        list: Vec<MovePositionItem>,
+    ) -> Self {
+        Self {
+            from_uid: from_uid.into(),
+            to_uid: to_uid.into(),
+            list,
+        }
+    }
+}
+
+/// Result of a move-positions request.
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MovePositionsResult {
+    /// Block trade ID.
+    pub block_trade_id: String,
+    /// Status (Processing, Rejected).
+    pub status: String,
+    /// Rejecting party (empty on success).
+    #[serde(default)]
+    pub reject_party: Option<String>,
+}
+
+/// Parameters for querying move position history.
+#[derive(Debug, Clone, Default, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GetMovePositionHistoryParams {
+    /// Product category filter.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub category: Option<Category>,
+    /// Trading symbol filter.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub symbol: Option<String>,
+    /// Start time (ms).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub start_time: Option<u64>,
+    /// End time (ms).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub end_time: Option<u64>,
+    /// Status filter (Processing, Filled, Rejected).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub status: Option<String>,
+    /// Block trade ID filter.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub block_trade_id: Option<String>,
+    /// Limit per page.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub limit: Option<u32>,
+    /// Cursor for pagination.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub cursor: Option<String>,
+}
+
+impl GetMovePositionHistoryParams {
+    /// Create new parameters.
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Set category filter.
+    pub fn category(mut self, category: Category) -> Self {
+        self.category = Some(category);
+        self
+    }
+
+    /// Set symbol filter.
+    pub fn symbol(mut self, symbol: impl Into<String>) -> Self {
+        self.symbol = Some(symbol.into());
+        self
+    }
+
+    /// Set status filter.
+    pub fn status(mut self, status: impl Into<String>) -> Self {
+        self.status = Some(status.into());
+        self
+    }
+
+    /// Set block trade ID filter.
+    pub fn block_trade_id(mut self, id: impl Into<String>) -> Self {
+        self.block_trade_id = Some(id.into());
+        self
+    }
+
+    /// Set limit.
+    pub fn limit(mut self, limit: u32) -> Self {
+        self.limit = Some(limit);
+        self
+    }
+
+    /// Set cursor.
+    pub fn cursor(mut self, cursor: impl Into<String>) -> Self {
+        self.cursor = Some(cursor.into());
+        self
+    }
+}
+
+/// Move position history entry.
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MovePositionHistoryEntry {
+    /// Block trade ID.
+    pub block_trade_id: String,
+    /// Product category.
+    pub category: String,
+    /// Order ID.
+    pub order_id: String,
+    /// User ID.
+    pub user_id: i64,
+    /// Trading symbol.
+    pub symbol: String,
+    /// Side.
+    pub side: String,
+    /// Trade price.
+    pub price: String,
+    /// Quantity.
+    pub qty: String,
+    /// Execution fee.
+    #[serde(default)]
+    pub exec_fee: Option<String>,
+    /// Status (Processing, Filled, Rejected).
+    pub status: String,
+    /// Execution ID.
+    #[serde(default)]
+    pub exec_id: Option<String>,
+    /// Result code (0 means success).
+    #[serde(default)]
+    pub result_code: Option<i32>,
+    /// Result message.
+    #[serde(default)]
+    pub result_message: Option<String>,
+    /// Created time (ms).
+    pub created_at: i64,
+    /// Updated time (ms).
+    pub updated_at: i64,
+    /// Rejecting party (empty on success).
+    #[serde(default)]
+    pub reject_party: Option<String>,
+}
+
+/// Move position history result.
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MovePositionHistoryResult {
+    /// List of moved positions.
+    pub list: Vec<MovePositionHistoryEntry>,
+    /// Cursor for next page.
+    #[serde(default)]
+    pub next_page_cursor: Option<String>,
+}
+
+/// Parameters for querying closed options positions.
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GetClosedOptionsPositionsParams {
+    /// Product category (must be option).
+    pub category: Category,
+    /// Trading symbol filter.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub symbol: Option<String>,
+    /// Start time (ms).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub start_time: Option<u64>,
+    /// End time (ms).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub end_time: Option<u64>,
+    /// Limit per page (max 100).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub limit: Option<u32>,
+    /// Cursor for pagination.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub cursor: Option<String>,
+}
+
+impl GetClosedOptionsPositionsParams {
+    /// Create new parameters.
+    pub fn new() -> Self {
+        Self {
+            category: Category::Option,
+            symbol: None,
+            start_time: None,
+            end_time: None,
+            limit: None,
+            cursor: None,
+        }
+    }
+
+    /// Set symbol filter.
+    pub fn symbol(mut self, symbol: impl Into<String>) -> Self {
+        self.symbol = Some(symbol.into());
+        self
+    }
+
+    /// Set start time.
+    pub fn start_time(mut self, start: u64) -> Self {
+        self.start_time = Some(start);
+        self
+    }
+
+    /// Set end time.
+    pub fn end_time(mut self, end: u64) -> Self {
+        self.end_time = Some(end);
+        self
+    }
+
+    /// Set limit.
+    pub fn limit(mut self, limit: u32) -> Self {
+        self.limit = Some(limit);
+        self
+    }
+
+    /// Set cursor.
+    pub fn cursor(mut self, cursor: impl Into<String>) -> Self {
+        self.cursor = Some(cursor.into());
+        self
+    }
+}
+
+impl Default for GetClosedOptionsPositionsParams {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+/// Closed options position record.
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ClosedOptionsPosition {
+    /// Trading symbol.
+    pub symbol: String,
+    /// Side.
+    pub side: String,
+    /// Total opening fee.
+    #[serde(default)]
+    pub total_open_fee: Option<String>,
+    /// Delivery fee.
+    #[serde(default)]
+    pub delivery_fee: Option<String>,
+    /// Total closing fee.
+    #[serde(default)]
+    pub total_close_fee: Option<String>,
+    /// Quantity.
+    pub qty: String,
+    /// Close time (ms).
+    pub close_time: i64,
+    /// Average exit price.
+    #[serde(default)]
+    pub avg_exit_price: Option<String>,
+    /// Delivery price.
+    #[serde(default)]
+    pub delivery_price: Option<String>,
+    /// Open time (ms).
+    pub open_time: i64,
+    /// Average entry price.
+    #[serde(default)]
+    pub avg_entry_price: Option<String>,
+    /// Total PnL.
+    #[serde(default)]
+    pub total_pnl: Option<String>,
+}
+
+/// Closed options positions result.
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ClosedOptionsPositionsResult {
+    /// Product category.
+    pub category: String,
+    /// List of closed options positions.
+    pub list: Vec<ClosedOptionsPosition>,
+    /// Cursor for next page.
+    #[serde(default)]
+    pub next_page_cursor: Option<String>,
+}
+
+/// Parameters for confirming the pending MMR.
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ConfirmPendingMmrParams {
+    /// Product category (linear, inverse).
+    pub category: Category,
+    /// Trading symbol.
+    pub symbol: String,
+}
+
+impl ConfirmPendingMmrParams {
+    /// Create new parameters.
+    pub fn new(category: Category, symbol: impl Into<String>) -> Self {
+        Self {
+            category,
+            symbol: symbol.into(),
+        }
+    }
 }
 
 #[cfg(test)]

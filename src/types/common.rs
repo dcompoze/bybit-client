@@ -68,6 +68,25 @@ impl PaginationParams {
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct Empty {}
 
+/// Deserialize an optional field that the API may return as a string or an integer.
+/// Bybit changed some fields (e.g. `smpGroup`) from integer to string.
+pub fn string_or_int<'de, D>(deserializer: D) -> Result<Option<String>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    #[derive(Deserialize)]
+    #[serde(untagged)]
+    enum StringOrInt {
+        String(String),
+        Int(i64),
+    }
+
+    Ok(Option::<StringOrInt>::deserialize(deserializer)?.map(|v| match v {
+        StringOrInt::String(s) => s,
+        StringOrInt::Int(i) => i.to_string(),
+    }))
+}
+
 /// Symbol information base fields (common across categories).
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]

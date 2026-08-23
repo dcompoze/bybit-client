@@ -231,6 +231,119 @@ impl PositionService {
             .get_signed("/v5/position/closed-pnl", Some(params))
             .await
     }
+
+    /// Set TP/SL mode to full or partial.
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// # use bybit_client::{BybitClient, Category};
+    /// # use bybit_client::types::position::SetTpslModeParams;
+    /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
+    /// let client = BybitClient::new("api_key", "api_secret")?;
+    ///
+    /// let params = SetTpslModeParams::partial(Category::Linear, "BTCUSDT");
+    /// let result = client.position().set_tpsl_mode(&params).await?;
+    /// println!("TP/SL mode: {}", result.tp_sl_mode);
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub async fn set_tpsl_mode(
+        &self,
+        params: &SetTpslModeParams,
+    ) -> Result<SetTpslModeResult, BybitError> {
+        self.http
+            .post_signed("/v5/position/set-tpsl-mode", Some(params))
+            .await
+    }
+
+    /// Set the risk limit for a position.
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// # use bybit_client::{BybitClient, Category};
+    /// # use bybit_client::types::position::SetRiskLimitParams;
+    /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
+    /// let client = BybitClient::new("api_key", "api_secret")?;
+    ///
+    /// let params = SetRiskLimitParams::new(Category::Linear, "BTCUSDT", 4);
+    /// let result = client.position().set_risk_limit(&params).await?;
+    /// println!("Risk limit value: {}", result.risk_limit_value);
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub async fn set_risk_limit(
+        &self,
+        params: &SetRiskLimitParams,
+    ) -> Result<SetRiskLimitResult, BybitError> {
+        self.http
+            .post_signed("/v5/position/set-risk-limit", Some(params))
+            .await
+    }
+
+    /// Move positions between UIDs under the same master account.
+    ///
+    /// Can only be called with a master UID API key.
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// # use bybit_client::{BybitClient, Category, Side};
+    /// # use bybit_client::types::position::{MovePositionItem, MovePositionsParams};
+    /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
+    /// let client = BybitClient::new("api_key", "api_secret")?;
+    ///
+    /// let item = MovePositionItem::new(Category::Linear, "BTCUSDT", "50000", Side::Buy, "0.1");
+    /// let params = MovePositionsParams::new("100001", "100002", vec![item]);
+    /// let result = client.position().move_positions(&params).await?;
+    /// println!("Block trade ID: {}", result.block_trade_id);
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub async fn move_positions(
+        &self,
+        params: &MovePositionsParams,
+    ) -> Result<MovePositionsResult, BybitError> {
+        self.http
+            .post_signed("/v5/position/move-positions", Some(params))
+            .await
+    }
+
+    /// Get move position history.
+    pub async fn get_move_position_history(
+        &self,
+        params: &GetMovePositionHistoryParams,
+    ) -> Result<MovePositionHistoryResult, BybitError> {
+        self.http
+            .get_signed("/v5/position/move-history", Some(params))
+            .await
+    }
+
+    /// Get closed options positions from the last 6 months.
+    pub async fn get_closed_options_positions(
+        &self,
+        params: &GetClosedOptionsPositionsParams,
+    ) -> Result<ClosedOptionsPositionsResult, BybitError> {
+        self.http
+            .get_signed("/v5/position/get-closed-positions", Some(params))
+            .await
+    }
+
+    /// Confirm the pending MMR after a risk limit adjustment.
+    ///
+    /// Applicable when the position is marked as reduce-only.
+    /// On success the system removes the reduce-only mark.
+    pub async fn confirm_pending_mmr(
+        &self,
+        params: &ConfirmPendingMmrParams,
+    ) -> Result<(), BybitError> {
+        let _: serde_json::Value = self
+            .http
+            .post_signed("/v5/position/confirm-pending-mmr", Some(params))
+            .await?;
+        Ok(())
+    }
 }
 
 #[cfg(test)]
@@ -263,6 +376,85 @@ mod tests {
         };
         assert!(json.contains("\"takeProfit\":\"55000\""));
         assert!(json.contains("\"stopLoss\":\"45000\""));
+    }
+
+    #[test]
+    fn test_set_tpsl_mode_params_serialization() {
+        let params = SetTpslModeParams::partial(Category::Linear, "BTCUSDT");
+        let json = match serde_json::to_string(&params) {
+            Ok(json) => json,
+            Err(err) => panic!("Failed to serialize TP/SL mode params: {}", err),
+        };
+        assert!(json.contains("\"category\":\"linear\""));
+        assert!(json.contains("\"symbol\":\"BTCUSDT\""));
+        assert!(json.contains("\"tpSlMode\":\"Partial\""));
+    }
+
+    #[test]
+    fn test_set_risk_limit_params_serialization() {
+        let params =
+            SetRiskLimitParams::new(Category::Linear, "BTCUSDT", 4).position_idx(PositionIdx::OneWay);
+        let json = match serde_json::to_string(&params) {
+            Ok(json) => json,
+            Err(err) => panic!("Failed to serialize risk limit params: {}", err),
+        };
+        assert!(json.contains("\"riskId\":4"));
+        assert!(json.contains("positionIdx"));
+    }
+
+    #[test]
+    fn test_move_positions_params_serialization() {
+        use crate::types::Side;
+
+        let item = MovePositionItem::new(Category::Linear, "BTCUSDT", "50000", Side::Buy, "0.1");
+        let params = MovePositionsParams::new("100001", "100002", vec![item]);
+        let json = match serde_json::to_string(&params) {
+            Ok(json) => json,
+            Err(err) => panic!("Failed to serialize move positions params: {}", err),
+        };
+        assert!(json.contains("\"fromUid\":\"100001\""));
+        assert!(json.contains("\"toUid\":\"100002\""));
+        assert!(json.contains("\"side\":\"Buy\""));
+        assert!(json.contains("\"qty\":\"0.1\""));
+    }
+
+    #[test]
+    fn test_get_move_position_history_params_serialization() {
+        let params = GetMovePositionHistoryParams::new()
+            .category(Category::Linear)
+            .status("Filled")
+            .limit(50);
+        let query = match serde_urlencoded::to_string(&params) {
+            Ok(query) => query,
+            Err(err) => panic!("Failed to serialize move history params: {}", err),
+        };
+        assert!(query.contains("category=linear"));
+        assert!(query.contains("status=Filled"));
+        assert!(query.contains("limit=50"));
+    }
+
+    #[test]
+    fn test_get_closed_options_positions_params_serialization() {
+        let params = GetClosedOptionsPositionsParams::new()
+            .symbol("BTC-30AUG26-50000-C")
+            .limit(20);
+        let query = match serde_urlencoded::to_string(&params) {
+            Ok(query) => query,
+            Err(err) => panic!("Failed to serialize closed options params: {}", err),
+        };
+        assert!(query.contains("category=option"));
+        assert!(query.contains("limit=20"));
+    }
+
+    #[test]
+    fn test_confirm_pending_mmr_params_serialization() {
+        let params = ConfirmPendingMmrParams::new(Category::Linear, "BTCUSDT");
+        let json = match serde_json::to_string(&params) {
+            Ok(json) => json,
+            Err(err) => panic!("Failed to serialize confirm MMR params: {}", err),
+        };
+        assert!(json.contains("\"category\":\"linear\""));
+        assert!(json.contains("\"symbol\":\"BTCUSDT\""));
     }
 
     #[test]

@@ -4,9 +4,11 @@
 //!
 //! ## Features
 //!
-//! - Full REST API V5 coverage.
-//! - WebSocket support for real-time data.
-//! - HMAC-SHA256 authentication.
+//! - Broad REST API V5 coverage across market, trade, position, account,
+//!   asset, user, spot margin, leverage token, crypto loan, spread trading,
+//!   earn, and pre-upgrade services.
+//! - WebSocket support for real-time data with automatic reconnect.
+//! - HMAC-SHA256 and RSA authentication.
 //! - Async/await support with tokio.
 //! - Strongly typed request/response structures.
 //!

@@ -2,15 +2,17 @@
 
 A Rust client library for the [Bybit V5 API](https://bybit-exchange.github.io/docs/):
 
-- Full REST API V5 coverage for market data, trading, positions, and account management
+- Broad REST API V5 coverage: market data, trading, positions, account, assets, users, spot margin, leverage tokens, crypto loans, spread trading, earn, and pre-upgrade history
 - WebSocket support for real-time public and private streams
 - WebSocket Trade API for low-latency order management
+- Automatic WebSocket reconnect with resubscribe
 - Local orderbook management with delta updates
-- HMAC-SHA256 authentication
+- HMAC-SHA256 and RSA authentication
 - Async/await support with Tokio
 - Strongly typed request/response structures
 - Automatic retry with exponential backoff
-- Testnet and demo trading support
+- Rate limit visibility from response headers
+- Testnet, demo trading, and regional endpoints
 
 ## Library
 
@@ -149,10 +151,18 @@ REST API services:
 
 | Service | Description | Authentication |
 |---------|-------------|----------------|
-| `market()` | Market data (tickers, orderbook, klines, trades) | Public |
-| `trade()` | Order placement and management | Required |
-| `position()` | Position information and management | Required |
-| `account()` | Wallet balance and account info | Required |
+| `market()` | Market data (tickers, orderbook, klines, trades, price limits, announcements) | Public |
+| `trade()` | Order placement, batch orders, pre-check, and DCP | Required |
+| `position()` | Position information, risk limits, TP/SL mode, move positions | Required |
+| `account()` | Wallet balance, account info, MMP, borrow/repay settings | Required |
+| `asset()` | Transfers, deposits, withdrawals, convert, coin info | Required |
+| `user()` | Sub-accounts, API key management, affiliates | Required |
+| `spot_margin()` | UTA spot margin trading | Required |
+| `spot_leverage_token()` | Leverage token info, purchase, redeem | Mixed |
+| `crypto_loan()` | Flexible and fixed crypto loans | Required |
+| `spread()` | Spread trading (market data and orders) | Mixed |
+| `earn()` | Earn products, stake and redeem | Required |
+| `pre_upgrade()` | Pre-UTA historical data | Required |
 
 Public WebSocket topics:
 
@@ -160,14 +170,21 @@ Public WebSocket topics:
 - `publicTrade.{symbol}` - Public trades
 - `tickers.{symbol}` - Ticker updates
 - `kline.{interval}.{symbol}` - Kline/candlestick data
-- `liquidation.{symbol}` - Liquidation events
+- `allLiquidation.{symbol}` - Liquidation events
+- `insurance.{coin}` - Insurance pool updates
+- `priceLimit.{symbol}` - Price limit updates
+- `liquidation.{symbol}` - Liquidation events (deprecated, use `allLiquidation`)
 
 Private WebSocket topics:
 
 - `position` - Position updates
 - `execution` - Execution updates
+- `execution.fast` - Low-latency execution updates
 - `order` - Order updates
 - `wallet` - Wallet balance updates
+- `greeks` - Options greeks updates
+
+WebSocket clients reconnect automatically with exponential backoff and resubscribe to all recorded topics.
 
 ## Configuration
 

@@ -254,6 +254,113 @@ impl AccountService {
             .post_signed("/v5/account/set-margin-mode", Some(params))
             .await
     }
+
+    /// Upgrade the account to a unified trading account.
+    pub async fn upgrade_to_uta(&self) -> Result<UpgradeToUtaResult, BybitError> {
+        self.http
+            .post_signed("/v5/account/upgrade-to-uta", None::<&()>)
+            .await
+    }
+
+    /// Get the contract wallet transaction log (classic account).
+    pub async fn get_contract_transaction_log(
+        &self,
+        params: &GetContractTransactionLogParams,
+    ) -> Result<TransactionLogResult, BybitError> {
+        self.http
+            .get_signed("/v5/account/contract-transaction-log", Some(params))
+            .await
+    }
+
+    /// Configure market maker protection.
+    pub async fn mmp_modify(&self, params: &MmpModifyParams) -> Result<(), BybitError> {
+        let _: serde_json::Value = self
+            .http
+            .post_signed("/v5/account/mmp-modify", Some(params))
+            .await?;
+        Ok(())
+    }
+
+    /// Reset market maker protection after it has been triggered.
+    pub async fn mmp_reset(&self, base_coin: impl Into<String>) -> Result<(), BybitError> {
+        let params = BaseCoinParams::new(base_coin);
+        let _: serde_json::Value = self
+            .http
+            .post_signed("/v5/account/mmp-reset", Some(&params))
+            .await?;
+        Ok(())
+    }
+
+    /// Get market maker protection state.
+    pub async fn get_mmp_state(
+        &self,
+        base_coin: impl Into<String>,
+    ) -> Result<MmpStateResult, BybitError> {
+        let params = BaseCoinParams::new(base_coin);
+        self.http
+            .get_signed("/v5/account/mmp-state", Some(&params))
+            .await
+    }
+
+    /// Set spot hedging mode.
+    pub async fn set_hedging_mode(&self, params: &SetHedgingModeParams) -> Result<(), BybitError> {
+        let _: serde_json::Value = self
+            .http
+            .post_signed("/v5/account/set-hedging-mode", Some(params))
+            .await?;
+        Ok(())
+    }
+
+    /// Set the limit price behaviour for orders that cross the price boundary.
+    pub async fn set_limit_px_action(
+        &self,
+        params: &SetLimitPxActionParams,
+    ) -> Result<(), BybitError> {
+        let _: serde_json::Value = self
+            .http
+            .post_signed("/v5/account/set-limit-px-action", Some(params))
+            .await?;
+        Ok(())
+    }
+
+    /// Set delta neutral mode.
+    pub async fn set_delta_mode(&self, params: &SetDeltaModeParams) -> Result<(), BybitError> {
+        let _: serde_json::Value = self
+            .http
+            .post_signed("/v5/account/set-delta-mode", Some(params))
+            .await?;
+        Ok(())
+    }
+
+    /// Get disconnect-cancel-all configuration.
+    pub async fn get_dcp_info(&self) -> Result<DcpInfoResult, BybitError> {
+        self.http
+            .get_signed("/v5/account/query-dcp-info", None::<&()>)
+            .await
+    }
+
+    /// Get the SMP group ID for self match prevention.
+    pub async fn get_smp_group(&self) -> Result<SmpGroupResult, BybitError> {
+        self.http
+            .get_signed("/v5/account/smp-group", None::<&()>)
+            .await
+    }
+
+    /// Get user setting configuration.
+    pub async fn get_user_setting_config(&self) -> Result<UserSettingConfig, BybitError> {
+        self.http
+            .get_signed("/v5/account/user-setting-config", None::<&()>)
+            .await
+    }
+
+    /// Request demo trading funds (demo accounts only).
+    pub async fn demo_apply_money(&self, params: &DemoApplyMoneyParams) -> Result<(), BybitError> {
+        let _: serde_json::Value = self
+            .http
+            .post_signed("/v5/account/demo-apply-money", Some(params))
+            .await?;
+        Ok(())
+    }
 }
 
 #[cfg(test)]
@@ -304,5 +411,81 @@ mod tests {
             Err(err) => panic!("Failed to serialize margin mode params: {}", err),
         };
         assert!(json.contains("\"setMarginMode\":\"PORTFOLIO_MARGIN\""));
+    }
+
+    #[test]
+    fn test_mmp_modify_params_serialization() {
+        let params = MmpModifyParams::new("BTC", "5000", "100000", "10", "20").vega_limit("30");
+        let json = match serde_json::to_string(&params) {
+            Ok(json) => json,
+            Err(err) => panic!("Failed to serialize MMP params: {}", err),
+        };
+        assert!(json.contains("\"baseCoin\":\"BTC\""));
+        assert!(json.contains("\"window\":\"5000\""));
+        assert!(json.contains("\"frozenPeriod\":\"100000\""));
+        assert!(json.contains("\"qtyLimit\":\"10\""));
+        assert!(json.contains("\"deltaLimit\":\"20\""));
+        assert!(json.contains("\"vegaLimit\":\"30\""));
+    }
+
+    #[test]
+    fn test_set_hedging_mode_params_serialization() {
+        let params = SetHedgingModeParams::on();
+        let json = match serde_json::to_string(&params) {
+            Ok(json) => json,
+            Err(err) => panic!("Failed to serialize hedging mode params: {}", err),
+        };
+        assert!(json.contains("\"setHedgingMode\":\"ON\""));
+    }
+
+    #[test]
+    fn test_set_limit_px_action_params_serialization() {
+        let params = SetLimitPxActionParams::new(Category::Spot, true);
+        let json = match serde_json::to_string(&params) {
+            Ok(json) => json,
+            Err(err) => panic!("Failed to serialize limit px action params: {}", err),
+        };
+        assert!(json.contains("\"category\":\"spot\""));
+        assert!(json.contains("\"modifyEnable\":true"));
+    }
+
+    #[test]
+    fn test_set_delta_mode_params_serialization() {
+        let params = SetDeltaModeParams::enable();
+        let json = match serde_json::to_string(&params) {
+            Ok(json) => json,
+            Err(err) => panic!("Failed to serialize delta mode params: {}", err),
+        };
+        assert!(json.contains("\"deltaEnable\":\"1\""));
+    }
+
+    #[test]
+    fn test_demo_apply_money_params_serialization() {
+        let params = DemoApplyMoneyParams::new()
+            .adjust_type(0)
+            .coin("USDT", "10000");
+        let json = match serde_json::to_string(&params) {
+            Ok(json) => json,
+            Err(err) => panic!("Failed to serialize demo apply money params: {}", err),
+        };
+        assert!(json.contains("\"adjustType\":0"));
+        assert!(json.contains("\"utaDemoApplyMoney\""));
+        assert!(json.contains("\"coin\":\"USDT\""));
+        assert!(json.contains("\"amountStr\":\"10000\""));
+    }
+
+    #[test]
+    fn test_contract_transaction_log_params_serialization() {
+        let params = GetContractTransactionLogParams::new()
+            .currency("USDT")
+            .transaction_type("TRADE")
+            .limit(20);
+        let query = match serde_urlencoded::to_string(&params) {
+            Ok(query) => query,
+            Err(err) => panic!("Failed to serialize contract transaction log params: {}", err),
+        };
+        assert!(query.contains("currency=USDT"));
+        assert!(query.contains("type=TRADE"));
+        assert!(query.contains("limit=20"));
     }
 }

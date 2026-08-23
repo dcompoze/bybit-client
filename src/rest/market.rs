@@ -49,7 +49,7 @@ impl MarketService {
     ///
     /// ```no_run
     /// # use bybit_client::{BybitClient, Category, KlineInterval};
-    /// # use bybit_client::api::market::GetKlineParams;
+    /// # use bybit_client::rest::market::GetKlineParams;
     /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
     /// let client = BybitClient::public_only()?;
     /// let params = GetKlineParams::new(Category::Linear, "BTCUSDT", KlineInterval::Hour1)
@@ -103,7 +103,7 @@ impl MarketService {
     ///
     /// ```no_run
     /// # use bybit_client::{BybitClient, Category};
-    /// # use bybit_client::api::market::GetInstrumentsInfoParams;
+    /// # use bybit_client::rest::market::GetInstrumentsInfoParams;
     /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
     /// let client = BybitClient::public_only()?;
     /// let params = GetInstrumentsInfoParams::new(Category::Linear)
@@ -134,7 +134,7 @@ impl MarketService {
     ///
     /// ```no_run
     /// # use bybit_client::{BybitClient, Category};
-    /// # use bybit_client::api::market::GetOrderbookParams;
+    /// # use bybit_client::rest::market::GetOrderbookParams;
     /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
     /// let client = BybitClient::public_only()?;
     /// let params = GetOrderbookParams::new(Category::Linear, "BTCUSDT")
@@ -155,7 +155,7 @@ impl MarketService {
     ///
     /// ```no_run
     /// # use bybit_client::{BybitClient, Category};
-    /// # use bybit_client::api::market::GetTickersParams;
+    /// # use bybit_client::rest::market::GetTickersParams;
     /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
     /// let client = BybitClient::public_only()?;
     /// let params = GetTickersParams::new(Category::Linear)
@@ -177,7 +177,7 @@ impl MarketService {
     ///
     /// ```no_run
     /// # use bybit_client::{BybitClient, Category};
-    /// # use bybit_client::api::market::GetFundingRateHistoryParams;
+    /// # use bybit_client::rest::market::GetFundingRateHistoryParams;
     /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
     /// let client = BybitClient::public_only()?;
     /// let params = GetFundingRateHistoryParams::new(Category::Linear, "BTCUSDT")
@@ -204,7 +204,7 @@ impl MarketService {
     ///
     /// ```no_run
     /// # use bybit_client::{BybitClient, Category};
-    /// # use bybit_client::api::market::GetPublicTradingHistoryParams;
+    /// # use bybit_client::rest::market::GetPublicTradingHistoryParams;
     /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
     /// let client = BybitClient::public_only()?;
     /// let params = GetPublicTradingHistoryParams::new(Category::Linear, "BTCUSDT")
@@ -286,6 +286,74 @@ impl MarketService {
         self.http
             .get("/v5/market/account-ratio", Some(params))
             .await
+    }
+
+    /// Get the current order price limits for a symbol.
+    pub async fn get_price_limit(
+        &self,
+        params: &GetPriceLimitParams,
+    ) -> Result<PriceLimitResult, BybitError> {
+        self.http.get("/v5/market/price-limit", Some(params)).await
+    }
+
+    /// Get new delivery prices (options).
+    pub async fn get_new_delivery_price(
+        &self,
+        params: &GetNewDeliveryPriceParams,
+    ) -> Result<DeliveryPriceResult, BybitError> {
+        self.http
+            .get("/v5/market/new-delivery-price", Some(params))
+            .await
+    }
+
+    /// Get the components of an index price.
+    pub async fn get_index_price_components(
+        &self,
+        index_name: impl Into<String>,
+    ) -> Result<IndexPriceComponentsResult, BybitError> {
+        let params = GetIndexPriceComponentsParams {
+            index_name: index_name.into(),
+        };
+        self.http
+            .get("/v5/market/index-price-components", Some(&params))
+            .await
+    }
+
+    /// Get the grouped fee structure for pro and market maker clients.
+    pub async fn get_fee_group_info(
+        &self,
+        params: &GetFeeGroupInfoParams,
+    ) -> Result<FeeGroupInfoResult, BybitError> {
+        self.http
+            .get("/v5/market/fee-group-info", Some(params))
+            .await
+    }
+
+    /// Get ADL alerts and insurance pool information.
+    pub async fn get_adl_alert(
+        &self,
+        symbol: Option<&str>,
+    ) -> Result<AdlAlertResult, BybitError> {
+        let params = GetAdlAlertParams {
+            symbol: symbol.map(str::to_string),
+        };
+        self.http.get("/v5/market/adlAlert", Some(&params)).await
+    }
+
+    /// Get platform announcements.
+    pub async fn get_announcements(
+        &self,
+        params: &GetAnnouncementsParams,
+    ) -> Result<AnnouncementResult, BybitError> {
+        self.http.get("/v5/announcements/index", Some(params)).await
+    }
+
+    /// Get platform maintenance status.
+    pub async fn get_system_status(
+        &self,
+        params: &GetSystemStatusParams,
+    ) -> Result<SystemStatusResult, BybitError> {
+        self.http.get("/v5/system/status", Some(params)).await
     }
 }
 
@@ -750,6 +818,188 @@ impl GetLongShortRatioParams {
     }
 }
 
+/// Parameters for getting order price limits.
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GetPriceLimitParams {
+    /// Product category (spot, linear, inverse).
+    pub category: Category,
+    /// Trading symbol.
+    pub symbol: String,
+}
+
+impl GetPriceLimitParams {
+    /// Create new parameters.
+    pub fn new(category: Category, symbol: impl Into<String>) -> Self {
+        Self {
+            category,
+            symbol: symbol.into(),
+        }
+    }
+}
+
+/// Parameters for getting new delivery prices.
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GetNewDeliveryPriceParams {
+    /// Product category (option).
+    pub category: Category,
+    /// Base coin.
+    pub base_coin: String,
+    /// Settle coin filter.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub settle_coin: Option<String>,
+}
+
+impl GetNewDeliveryPriceParams {
+    /// Create new parameters.
+    pub fn new(category: Category, base_coin: impl Into<String>) -> Self {
+        Self {
+            category,
+            base_coin: base_coin.into(),
+            settle_coin: None,
+        }
+    }
+
+    /// Set settle coin filter.
+    pub fn settle_coin(mut self, coin: impl Into<String>) -> Self {
+        self.settle_coin = Some(coin.into());
+        self
+    }
+}
+
+/// Parameters for getting index price components.
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GetIndexPriceComponentsParams {
+    /// Index name (e.g. BTCUSDT).
+    pub index_name: String,
+}
+
+/// Parameters for getting fee group info.
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GetFeeGroupInfoParams {
+    /// Product type (currently `contract` only).
+    pub product_type: String,
+    /// Group ID filter.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub group_id: Option<String>,
+}
+
+impl GetFeeGroupInfoParams {
+    /// Create new parameters for contract products.
+    pub fn contract() -> Self {
+        Self {
+            product_type: "contract".to_string(),
+            group_id: None,
+        }
+    }
+
+    /// Set group ID filter.
+    pub fn group_id(mut self, id: impl Into<String>) -> Self {
+        self.group_id = Some(id.into());
+        self
+    }
+}
+
+/// Parameters for getting ADL alerts.
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GetAdlAlertParams {
+    /// Trading symbol filter.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub symbol: Option<String>,
+}
+
+/// Parameters for getting announcements.
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GetAnnouncementsParams {
+    /// Language locale (e.g. en-US).
+    pub locale: String,
+    /// Announcement type filter.
+    #[serde(skip_serializing_if = "Option::is_none", rename = "type")]
+    pub announcement_type: Option<String>,
+    /// Tag filter.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tag: Option<String>,
+    /// Page number.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub page: Option<u32>,
+    /// Limit per page.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub limit: Option<u32>,
+}
+
+impl GetAnnouncementsParams {
+    /// Create new parameters.
+    pub fn new(locale: impl Into<String>) -> Self {
+        Self {
+            locale: locale.into(),
+            announcement_type: None,
+            tag: None,
+            page: None,
+            limit: None,
+        }
+    }
+
+    /// Set announcement type filter.
+    pub fn announcement_type(mut self, t: impl Into<String>) -> Self {
+        self.announcement_type = Some(t.into());
+        self
+    }
+
+    /// Set tag filter.
+    pub fn tag(mut self, tag: impl Into<String>) -> Self {
+        self.tag = Some(tag.into());
+        self
+    }
+
+    /// Set page number.
+    pub fn page(mut self, page: u32) -> Self {
+        self.page = Some(page);
+        self
+    }
+
+    /// Set limit.
+    pub fn limit(mut self, limit: u32) -> Self {
+        self.limit = Some(limit);
+        self
+    }
+}
+
+/// Parameters for getting system status.
+#[derive(Debug, Clone, Default, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GetSystemStatusParams {
+    /// Maintenance ID filter.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub id: Option<String>,
+    /// State filter.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub state: Option<String>,
+}
+
+impl GetSystemStatusParams {
+    /// Create new parameters.
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Set maintenance ID filter.
+    pub fn id(mut self, id: impl Into<String>) -> Self {
+        self.id = Some(id.into());
+        self
+    }
+
+    /// Set state filter.
+    pub fn state(mut self, state: impl Into<String>) -> Self {
+        self.state = Some(state.into());
+        self
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -774,5 +1024,53 @@ mod tests {
         let params = GetOrderbookParams::new(Category::Spot, "BTCUSDT").limit(25);
         assert_eq!(params.symbol, "BTCUSDT");
         assert_eq!(params.limit, Some(25));
+    }
+
+    #[test]
+    fn test_price_limit_params_serialization() {
+        let params = GetPriceLimitParams::new(Category::Linear, "BTCUSDT");
+        let query = match serde_urlencoded::to_string(&params) {
+            Ok(query) => query,
+            Err(err) => panic!("Failed to serialize price limit params: {}", err),
+        };
+        assert!(query.contains("category=linear"));
+        assert!(query.contains("symbol=BTCUSDT"));
+    }
+
+    #[test]
+    fn test_fee_group_info_params_serialization() {
+        let params = GetFeeGroupInfoParams::contract().group_id("8");
+        let query = match serde_urlencoded::to_string(&params) {
+            Ok(query) => query,
+            Err(err) => panic!("Failed to serialize fee group params: {}", err),
+        };
+        assert!(query.contains("productType=contract"));
+        assert!(query.contains("groupId=8"));
+    }
+
+    #[test]
+    fn test_announcements_params_serialization() {
+        let params = GetAnnouncementsParams::new("en-US")
+            .announcement_type("new_crypto")
+            .limit(10);
+        let query = match serde_urlencoded::to_string(&params) {
+            Ok(query) => query,
+            Err(err) => panic!("Failed to serialize announcements params: {}", err),
+        };
+        assert!(query.contains("locale=en-US"));
+        assert!(query.contains("type=new_crypto"));
+        assert!(query.contains("limit=10"));
+    }
+
+    #[test]
+    fn test_new_delivery_price_params_serialization() {
+        let params = GetNewDeliveryPriceParams::new(Category::Option, "BTC").settle_coin("USDC");
+        let query = match serde_urlencoded::to_string(&params) {
+            Ok(query) => query,
+            Err(err) => panic!("Failed to serialize new delivery price params: {}", err),
+        };
+        assert!(query.contains("category=option"));
+        assert!(query.contains("baseCoin=BTC"));
+        assert!(query.contains("settleCoin=USDC"));
     }
 }

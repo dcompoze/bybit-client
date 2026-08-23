@@ -1,16 +1,19 @@
 //! HTTP client for the Bybit REST API.
 
 use std::sync::atomic::{AtomicI64, Ordering};
+use std::sync::{Arc, RwLock};
 use std::time::Duration;
 
+use reqwest::header::HeaderMap;
 use reqwest::{Client, Method, RequestBuilder, Response};
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 use tracing::{debug, trace, warn};
 
-use crate::auth::{current_timestamp_ms, headers, sign_rest_request};
+use crate::auth::{current_timestamp_ms, headers, sign_message};
 use crate::config::ClientConfig;
 use crate::error::{ApiResponse, BybitError};
+use crate::types::common::RateLimitInfo;
 
 /// HTTP client for making REST API requests to Bybit.
 #[derive(Debug)]
@@ -20,6 +23,8 @@ pub struct HttpClient {
     /// Time offset between local time and server time (in milliseconds).
     /// Positive means server is ahead of local.
     time_offset: AtomicI64,
+    /// Rate limit information from the most recent response.
+    rate_limit: Arc<RwLock<Option<RateLimitInfo>>>,
 }
 
 impl HttpClient {
@@ -37,7 +42,13 @@ impl HttpClient {
             client,
             config,
             time_offset: AtomicI64::new(0),
+            rate_limit: Arc::new(RwLock::new(None)),
         })
+    }
+
+    /// Get the rate limit information from the most recent response.
+    pub fn last_rate_limit(&self) -> Option<RateLimitInfo> {
+        self.rate_limit.read().ok().and_then(|guard| guard.clone())
     }
 
     /// Get the client configuration.
@@ -204,7 +215,8 @@ impl HttpClient {
             body_string
         };
 
-        let signature = sign_rest_request(timestamp, api_key, recv_window, payload, api_secret);
+        let message = format!("{}{}{}{}", timestamp, api_key, recv_window, payload);
+        let signature = sign_message(&message, api_secret)?;
 
         Ok(request
             .header(headers::API_KEY, api_key)
@@ -220,6 +232,12 @@ impl HttpClient {
         response: Response,
     ) -> Result<T, BybitError> {
         let status = response.status();
+
+        if let Some(info) = parse_rate_limit_headers(response.headers()) {
+            if let Ok(mut guard) = self.rate_limit.write() {
+                *guard = Some(info);
+            }
+        }
 
         if self.config.debug {
             debug!(status = %status, "Received response");
@@ -283,12 +301,35 @@ impl HttpClient {
     }
 }
 
+/// Parse rate limit headers from a response.
+///
+/// Bybit returns `X-Bapi-Limit` (max per window), `X-Bapi-Limit-Status`
+/// (remaining), and `X-Bapi-Limit-Reset-Timestamp` (reset time in ms).
+fn parse_rate_limit_headers(headers: &HeaderMap) -> Option<RateLimitInfo> {
+    let get = |name: &str| headers.get(name).and_then(|v| v.to_str().ok());
+
+    let limit = get("x-bapi-limit").and_then(|v| v.parse().ok());
+    let remaining = get("x-bapi-limit-status").and_then(|v| v.parse().ok());
+    let reset_at = get("x-bapi-limit-reset-timestamp").and_then(|v| v.parse().ok());
+
+    if limit.is_none() && remaining.is_none() && reset_at.is_none() {
+        return None;
+    }
+
+    Some(RateLimitInfo {
+        remaining,
+        limit,
+        reset_at,
+    })
+}
+
 impl Clone for HttpClient {
     fn clone(&self) -> Self {
         Self {
             client: self.client.clone(),
             config: self.config.clone(),
             time_offset: AtomicI64::new(self.time_offset.load(Ordering::Relaxed)),
+            rate_limit: Arc::clone(&self.rate_limit),
         }
     }
 }
@@ -317,6 +358,27 @@ mod tests {
         };
         let url = client.build_url("/v5/market/time");
         assert_eq!(url, "https://api-testnet.bybit.com/v5/market/time");
+    }
+
+    #[test]
+    fn test_parse_rate_limit_headers() {
+        let mut headers = HeaderMap::new();
+        headers.insert("X-Bapi-Limit", "120".parse().unwrap());
+        headers.insert("X-Bapi-Limit-Status", "118".parse().unwrap());
+        headers.insert(
+            "X-Bapi-Limit-Reset-Timestamp",
+            "1699123456789".parse().unwrap(),
+        );
+
+        let info = match parse_rate_limit_headers(&headers) {
+            Some(info) => info,
+            None => panic!("Expected rate limit info"),
+        };
+        assert_eq!(info.limit, Some(120));
+        assert_eq!(info.remaining, Some(118));
+        assert_eq!(info.reset_at, Some(1699123456789));
+
+        assert!(parse_rate_limit_headers(&HeaderMap::new()).is_none());
     }
 
     #[test]

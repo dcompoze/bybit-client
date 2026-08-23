@@ -366,6 +366,45 @@ impl TradeService {
             .post_signed("/v5/order/cancel-batch", Some(&request))
             .await
     }
+
+    /// Pre-check an order to calculate IMR and MMR changes before placing it.
+    ///
+    /// Supports linear, inverse, and option categories.
+    /// Only cross margin and portfolio margin modes are supported.
+    /// Conditional orders are not supported.
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// # use bybit_client::{BybitClient, Category, Side};
+    /// # use bybit_client::types::trade::OrderParams;
+    /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
+    /// let client = BybitClient::new("api_key", "api_secret")?;
+    ///
+    /// let params = OrderParams::limit(Category::Linear, "BTCUSDT", Side::Buy, "0.001", "50000");
+    /// let result = client.trade().pre_check_order(&params).await?;
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub async fn pre_check_order(
+        &self,
+        params: &OrderParams,
+    ) -> Result<PreCheckOrderResult, BybitError> {
+        self.http.post_signed("/v5/order/pre-check", Some(params)).await
+    }
+
+    /// Set the disconnect cancel all (DCP) time window.
+    ///
+    /// When the connection drops for longer than the window,
+    /// all pending orders in the configured product scope are cancelled.
+    /// DCP must be enabled for the account first.
+    pub async fn set_disconnect_cancel_all(&self, params: &SetDcpParams) -> Result<(), BybitError> {
+        let _: serde_json::Value = self
+            .http
+            .post_signed("/v5/order/disconnected-cancel-all", Some(params))
+            .await?;
+        Ok(())
+    }
 }
 
 #[cfg(test)]
@@ -391,6 +430,36 @@ mod tests {
         assert!(json.contains("\"price\":\"50000\""));
         assert!(json.contains("\"timeInForce\":\"GTC\""));
         assert!(json.contains("\"orderLinkId\":\"test_order\""));
+    }
+
+    #[test]
+    fn test_set_dcp_params_serialization() {
+        let params = SetDcpParams::new(30).product("DERIVATIVES");
+        let json = match serde_json::to_string(&params) {
+            Ok(json) => json,
+            Err(err) => panic!("Failed to serialize DCP params: {}", err),
+        };
+        assert!(json.contains("\"timeWindow\":30"));
+        assert!(json.contains("\"product\":\"DERIVATIVES\""));
+    }
+
+    #[test]
+    fn test_pre_check_order_result_deserialization() {
+        let json = r#"{
+            "orderId": "1234",
+            "orderLinkId": "test",
+            "preImrE4": 100,
+            "preMmrE4": 50,
+            "postImrE4": 200,
+            "postMmrE4": 100
+        }"#;
+        let result: PreCheckOrderResult = match serde_json::from_str(json) {
+            Ok(result) => result,
+            Err(err) => panic!("Failed to deserialize pre-check result: {}", err),
+        };
+        assert_eq!(result.order_id.as_deref(), Some("1234"));
+        assert_eq!(result.pre_imr_e4, Some(100));
+        assert_eq!(result.post_mmr_e4, Some(100));
     }
 
     #[test]
