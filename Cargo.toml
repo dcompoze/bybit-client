@@ -1,21 +1,21 @@
 [package]
-name = "bybit-client"
-version = "0.2.0"
-edition = "2024"
 authors = ["dcompoze"]
-description = "A Rust client library for the Bybit V5 API with REST and WebSocket support"
-license = "MIT"
-repository = "https://github.com/dcompoze/bybit-client"
-homepage = "https://github.com/dcompoze/bybit-client"
-documentation = "https://docs.rs/bybit-client"
-readme = "README.md"
-keywords = ["bybit", "cryptocurrency", "trading", "api", "websocket"]
 categories = ["api-bindings", "asynchronous", "web-programming"]
+description = "A Rust client library for the Bybit V5 API with REST and WebSocket support"
+documentation = "https://docs.rs/bybit-client"
+edition = "2024"
+homepage = "https://github.com/dcompoze/bybit-client"
+keywords = ["bybit", "cryptocurrency", "trading", "api", "websocket"]
+license = "MIT"
+name = "bybit-client"
+readme = "README.md"
+repository = "https://github.com/dcompoze/bybit-client"
 rust-version = "1.85"
+version = "0.2.1"
 
 [lib]
-path = "src/lib.rs"
 name = "bybit_client"
+path = "src/lib.rs"
 
 [dependencies]
 base64 = "0.22"
@@ -23,10 +23,10 @@ futures = "0.3.31"
 futures-util = "0.3.31"
 hex = "0.4"
 reqwest = { version = "0.13.1", features = ["json"] }
-ring = "0.17"
 reqwest-middleware = "0.5.0"
 reqwest-retry = "0.9.0"
 reqwest-tracing = "0.7.1"
+ring = "0.17"
 secrecy = "0.10.3"
 serde = { version = "1.0.228", features = ["derive"] }
 serde_json = "1.0.149"
