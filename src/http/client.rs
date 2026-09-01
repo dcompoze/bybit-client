@@ -32,11 +32,17 @@ impl HttpClient {
     pub fn new(config: ClientConfig) -> Result<Self, BybitError> {
         let timeout = Duration::from_millis(config.timeout_ms);
 
-        let client = Client::builder()
+        let builder = Client::builder()
             .timeout(timeout)
-            .pool_max_idle_per_host(10)
-            .build()
-            .map_err(BybitError::Http)?;
+            .pool_max_idle_per_host(10);
+
+        #[cfg(feature = "native-tls")]
+        let builder = builder.tls_backend_native();
+
+        #[cfg(feature = "rustls-tls")]
+        let builder = builder.tls_backend_rustls();
+
+        let client = builder.build().map_err(BybitError::Http)?;
 
         Ok(Self {
             client,

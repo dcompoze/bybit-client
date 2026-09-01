@@ -48,6 +48,12 @@
 //!     .timeout_ms(30000);           // Set request timeout to 30 seconds.
 //! ```
 
+#[cfg(all(feature = "native-tls", feature = "rustls-tls"))]
+compile_error!("features `native-tls` and `rustls-tls` cannot be enabled together");
+
+#[cfg(not(any(feature = "native-tls", feature = "rustls-tls")))]
+compile_error!("either feature `native-tls` or `rustls-tls` must be enabled");
+
 pub mod auth;
 pub mod client;
 pub mod config;
